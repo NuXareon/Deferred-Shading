@@ -19,7 +19,7 @@ public:
 
 private:
     Ui::DeferredShading *ui;
-    QSlider *createSlider();
+    QSlider *createSlider(Qt::Orientation x);
 };
 
 #endif // DEFERREDSHADING_H

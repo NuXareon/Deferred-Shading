@@ -5,9 +5,9 @@
 
 #include "glwidget.h"
 
-QSlider *DeferredShading::createSlider()
+QSlider *DeferredShading::createSlider(Qt::Orientation x)
 {
-    QSlider *slider = new QSlider(Qt::Vertical);
+    QSlider *slider = new QSlider(x);
     slider->setRange(0, 360 * 16);
     slider->setSingleStep(16);
     slider->setPageStep(15 * 16);
@@ -22,9 +22,11 @@ DeferredShading::DeferredShading(QWidget *parent) :
 {
     ui->setupUi(this);
     QHBoxLayout *mainLayout = new QHBoxLayout;
-    QSlider *xSlider = createSlider();
-    QSlider *ySlider = createSlider();
-    QSlider *zSlider = createSlider();
+    QVBoxLayout *secondLayout = new QVBoxLayout;
+    QSlider *xSlider = createSlider(Qt::Vertical);
+    QSlider *ySlider = createSlider(Qt::Vertical);
+    QSlider *zSlider = createSlider(Qt::Vertical);
+    QSlider *zoomSlider = createSlider(Qt::Horizontal);
     GLWidget *glWidget = new GLWidget;
 
     connect(xSlider,SIGNAL(valueChanged(int)), glWidget, SLOT(setXRotation(int)));
@@ -33,17 +35,23 @@ DeferredShading::DeferredShading(QWidget *parent) :
     connect(glWidget, SIGNAL(yRotationChanged(int)), ySlider, SLOT(setValue(int)));
     connect(zSlider,SIGNAL(valueChanged(int)), glWidget, SLOT(setZRotation(int)));
     connect(glWidget, SIGNAL(zRotationChanged(int)), zSlider, SLOT(setValue(int)));
+    connect(zoomSlider,SIGNAL(valueChanged(int)), glWidget, SLOT(setZoomLevel(int)));
+    connect(glWidget,SIGNAL(zoomChanged(int)), zoomSlider, SLOT(setValue(int)));
 
     mainLayout->addWidget(glWidget);
     mainLayout->addWidget(xSlider);
     mainLayout->addWidget(ySlider);
     mainLayout->addWidget(zSlider);
 
+    secondLayout->addWidget(zoomSlider);
+    secondLayout->addLayout(mainLayout);
+
     xSlider->setValue(15 * 16);
     ySlider->setValue(345 * 16);
     zSlider->setValue(0 * 16);
+    zoomSlider->setValue(2 * 16);
     setWindowTitle("Deferred Shading");
-    ui->centralWidget->setLayout(mainLayout);
+    ui->centralWidget->setLayout(secondLayout);
 }
 
 DeferredShading::~DeferredShading()

@@ -20,11 +20,13 @@ public slots:
     void setXRotation(int angle);
     void setYRotation(int angle);
     void setZRotation(int angle);
+    void setZoomLevel(int z);
 
 signals:
     void xRotationChanged(int angle);
     void yRotationChanged(int angle);
     void zRotationChanged(int angle);
+    void zoomChanged(int z);
 
 protected:
     void initializeGL();
@@ -37,6 +39,7 @@ private:
     int xRot;
     int yRot;
     int zRot;
+    int Zoom;
     QPoint lastPos;
     QColor qtGreen;
     QColor qtPurple;

@@ -68,6 +68,15 @@ void GLWidget::setZRotation(int angle)
     }
 }
 
+void GLWidget::setZoomLevel(int z)
+{
+    if (z != Zoom) {
+        Zoom = z;
+        emit zoomChanged(z);
+        updateGL();
+    }
+}
+
 void GLWidget::initializeGL()
 {
     qglClearColor(qtPurple.dark());
@@ -89,7 +98,9 @@ void GLWidget::resizeGL(int width, int height)
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(-0.5,0.5,-0.5,0.5,4.0,15.0);
+    glFrustum(-0.5,0.5,-0.5,0.5,1.0,100.0);
+    //gluPerspective(60,16/9,1.0,50.0);
+    //glOrtho(-0.5,0.5,-0.5,0.5,4.0,15.0);
     glMatrixMode(GL_MODELVIEW);
 }
 
@@ -97,7 +108,7 @@ void GLWidget::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
-    glTranslatef(0.0,0.0,-10.0);
+    glTranslatef(0.0f,0.0f,-Zoom/16.0);
     glRotatef(xRot / 16.0, 1.0, 0.0, 0.0);
     glRotatef(yRot / 16.0, 0.0, 1.0, 0.0);
     glRotatef(zRot / 16.0, 0.0, 0.0, 1.0);
