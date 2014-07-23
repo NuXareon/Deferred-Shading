@@ -14,17 +14,16 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         deferredshading.cpp \
-    glwidget.cpp
+    glwidget.cpp \
+    mesh.cpp
 
 HEADERS  += deferredshading.h \
-    glwidget.h
+    glwidget.h \
+    mesh.h
 
 FORMS    += deferredshading.ui
 
-win32: LIBS += -L$$PWD/Assimp/lib32/ -lassimp
+unix:!macx|win32: LIBS += -L$$PWD/Assimp/lib32/ -lassimp
 
-INCLUDEPATH += $$PWD/Assimp/lib32
-DEPENDPATH += $$PWD/Assimp/lib32
-
-win32:!win32-g++: PRE_TARGETDEPS += $$PWD/Assimp/lib32/assimp.lib
-else:win32-g++: PRE_TARGETDEPS += $$PWD/Assimp/lib32/libassimp.a
+INCLUDEPATH += $$PWD/Assimp/include/assimp
+DEPENDPATH += $$PWD/Assimp/include/assimp

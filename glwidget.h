@@ -41,8 +41,6 @@ private:
     int zRot;
     int Zoom;
     QPoint lastPos;
-    QColor qtGreen;
-    QColor qtPurple;
 };
 
 #endif // GLWIDGET_H
