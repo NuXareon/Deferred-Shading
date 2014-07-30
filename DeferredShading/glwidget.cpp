@@ -1,6 +1,13 @@
 #include <QMouseEvent>
 #include "glwidget.h"
 #include <gl\GLU.h>
+#include <GL\GL.h>
+#include <fstream>
+#include <iostream>
+
+const char* VSPath = "shader.vs";
+const char* FSPath = "shader.fs";
+GLuint VBO;
 
 GLWidget::GLWidget(QWidget *parent) :
     QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
@@ -72,14 +79,9 @@ void GLWidget::setZoomLevel(int z)
     }
 }
 
-void GLWidget::initializeGL()
+void GLWidget::initializeLighting()
 {
-    qglClearColor(QColor::fromRgb(0,0,0));
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glShadeModel(GL_SMOOTH);
-    glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
 	glEnable(GL_LIGHT1);
 	//GLfloat light_ambient[4] = { 1.0, 1.0, 1.0, 0.1 };
@@ -93,12 +95,106 @@ void GLWidget::initializeGL()
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse1);
     glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-	glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.3);
+	glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.3f);
 	//glLightfv(GL_LIGHT1, GL_AMBIENT, light_ambient);
 	glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse2);
 	glLightfv(GL_LIGHT1, GL_POSITION, lightPosition2);
 	glLightfv(GL_LIGHT1, GL_SPECULAR, light_specular);
-	glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, 0.3);
+	glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, 0.3f);
+}
+
+bool GLWidget::readFile(const char* path, std::string& out)
+{
+	std::string line;
+	std::ifstream inFile(path);
+
+	if (inFile.is_open()) {
+		while (getline(inFile,line)) {
+			out.append(line);
+			out.append("\n");
+		}
+		inFile.close();
+	} else {
+		return false;
+	}
+	return true;
+}
+
+void GLWidget::initializeShaders()
+{
+	QGLFunctions glFuncs(QGLContext::currentContext());
+	GLuint shaderProgram = glFuncs.glCreateProgram();
+
+	// Vertex shader load
+	std::string vertexShader;
+
+	if (!readFile(VSPath, vertexShader)) exit(1);
+	
+	GLuint vShaderObj = glFuncs.glCreateShader(GL_VERTEX_SHADER);
+
+	const char* shaderFiles[1];
+	shaderFiles[0] = vertexShader.c_str();
+	GLint lengths[1];
+	lengths[0] = vertexShader.size();
+	glFuncs.glShaderSource(vShaderObj, 1, shaderFiles, lengths);
+	glFuncs.glCompileShader(vShaderObj);
+	GLint success;
+	glFuncs.glGetShaderiv(vShaderObj, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		char InfoLog[1024];
+		glFuncs.glGetShaderInfoLog(vShaderObj, sizeof(InfoLog), NULL, InfoLog);
+		fprintf(stderr, "Error compiling shader: '%s'\n", InfoLog);
+	}
+
+	glFuncs.glAttachShader(shaderProgram,vShaderObj);
+
+	// Fragment shader load
+	std::string fragmentShader;
+
+	if (!readFile(FSPath, fragmentShader)) exit(1);
+	
+	GLuint fShaderObj = glFuncs.glCreateShader(GL_FRAGMENT_SHADER);
+
+	shaderFiles[0] = fragmentShader.c_str();
+	lengths[0] = fragmentShader.size();
+	glFuncs.glShaderSource(fShaderObj, 1, shaderFiles, lengths);
+	glFuncs.glCompileShader(fShaderObj);
+	glFuncs.glGetShaderiv(fShaderObj, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		char InfoLog[1024];
+		glFuncs.glGetShaderInfoLog(fShaderObj, sizeof(InfoLog), NULL, InfoLog);
+		fprintf(stderr, "Error compiling shader: '%s'\n", InfoLog);
+	}
+
+	glFuncs.glAttachShader(shaderProgram,fShaderObj);
+	glFuncs.glLinkProgram(shaderProgram);
+	glFuncs.glGetProgramiv(shaderProgram,GL_LINK_STATUS,&success);
+	glFuncs.glValidateProgram(shaderProgram);
+	glFuncs.glGetProgramiv(shaderProgram,GL_VALIDATE_STATUS,&success);
+	glFuncs.glUseProgram(shaderProgram);
+}
+
+void GLWidget::initializeGL()
+{
+    qglClearColor(QColor::fromRgb(0,0,0));
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glShadeModel(GL_SMOOTH);
+	initializeLighting();
+	initializeShaders();
+	
+	Vector3f Vertices[3];
+    Vertices[0] = Vector3f(-1.0f, -1.0f, 0.0f);
+    Vertices[1] = Vector3f(1.0f, -1.0f, 0.0f);
+    Vertices[2] = Vector3f(0.0f, 1.0f, 0.0f);
+
+	QGLFunctions glFuncs(QGLContext::currentContext());
+
+ 	glFuncs.glGenBuffers(1, &VBO);
+	glFuncs.glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glFuncs.glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+    
 	mainMesh = new Mesh();
     mainMesh->LoadMesh("../DeferredShading/Models/sponza/sponza.obj");
 }
@@ -134,19 +230,28 @@ void GLWidget::paintGL()
 		glVertex3f(0.0f,0.0f,0.0f);
 		glVertex3f(0.0f,0.0f,100.0f);
 	glEnd();
-	/*
+	
     glBegin(GL_TRIANGLES);
-        glVertex3f(-0.2f,-0.2f,-0.2f);
-        glVertex3f(-0.2f,0.2f,-0.2f);
-        glVertex3f(0.2f,0.2f,-0.2f);
-        glVertex3f(0.2f,0.2f,1.0f);
-        glVertex3f(-0.3f,0.2f,1.0f);
-        glVertex3f(0.2f,0.2f,-0.2f);
-        glVertex3f(-0.2f,-0.2f,-0.2f);
-        glVertex3f(0.2f,-0.2f,-0.2f);
-        glVertex3f(0.2f,0.2f,-0.2f);
+        glVertex3f(-10.2f,-10.2f,-10.2f);
+        glVertex3f(-10.2f,10.2f,-10.2f);
+        glVertex3f(10.2f,10.2f,-10.2f);
+        glVertex3f(10.2f,10.2f,10.0f);
+        glVertex3f(-10.3f,10.2f,10.0f);
+        glVertex3f(10.2f,10.2f,-10.2f);
+        glVertex3f(-10.2f,-10.2f,-10.2f);
+        glVertex3f(10.2f,-10.2f,-10.2f);
+        glVertex3f(10.2f,10.2f,-10.2f);
     glEnd();
-	*/
+	
+	QGLFunctions glFuncs(QGLContext::currentContext());
+    glFuncs.glEnableVertexAttribArray(0);
+    glFuncs.glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glFuncs.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    glFuncs.glDisableVertexAttribArray(0);
+	
     mainMesh->Render();
 }
 

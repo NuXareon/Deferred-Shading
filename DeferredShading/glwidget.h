@@ -38,4 +38,8 @@ private:
     int Zoom;
     QPoint lastPos;
 	Mesh *mainMesh;
+
+	bool readFile(const char* path, std::string& out);
+	void initializeLighting();
+	void initializeShaders();
 };
