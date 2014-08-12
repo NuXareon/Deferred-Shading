@@ -108,10 +108,12 @@ void Mesh::InitMesh(unsigned int Index, const aiMesh *paiMesh)
     m_Entries[Index].Init(Vertices,Indices);
 }
 
-void Mesh::Render()
+void Mesh::Render(GLuint SP)
 {
 	QGLFunctions glFuncs(QGLContext::currentContext());
-    glFuncs.glEnableVertexAttribArray(0);
+    GLuint positionLocation = glFuncs.glGetAttribLocation(SP,"position");
+
+    glFuncs.glEnableVertexAttribArray(positionLocation);
     //glEnableVertexAttribArray(1);
     //glEnableVertexAttribArray(2);
 
@@ -127,5 +129,5 @@ void Mesh::Render()
         glDrawElements(GL_TRIANGLES, m_Entries[i].NumIndices, GL_UNSIGNED_INT,0);
     }
 
-    glFuncs.glDisableVertexAttribArray(0);
+    glFuncs.glDisableVertexAttribArray(positionLocation);
 }

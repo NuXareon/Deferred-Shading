@@ -123,14 +123,14 @@ bool GLWidget::readFile(const char* path, std::string& out)
 void GLWidget::initializeShaders()
 {
 	QGLFunctions glFuncs(QGLContext::currentContext());
-	GLuint shaderProgram = glFuncs.glCreateProgram();
+	shaderProgram = glFuncs.glCreateProgram();
 
 	// Vertex shader load
 	std::string vertexShader;
 
 	if (!readFile(VSPath, vertexShader)) exit(1);
 	
-	GLuint vShaderObj = glFuncs.glCreateShader(GL_VERTEX_SHADER);
+	vShaderObj = glFuncs.glCreateShader(GL_VERTEX_SHADER);
 
 	const char* shaderFiles[1];
 	shaderFiles[0] = vertexShader.c_str();
@@ -181,9 +181,10 @@ void GLWidget::initializeGL()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glShadeModel(GL_SMOOTH);
-	initializeLighting();
+	//initializeLighting();
 	initializeShaders();
-	
+
+	//Test triangle array
 	Vector3f Vertices[3];
     Vertices[0] = Vector3f(-1.0f, -1.0f, 0.0f);
     Vertices[1] = Vector3f(1.0f, -1.0f, 0.0f);
@@ -195,6 +196,7 @@ void GLWidget::initializeGL()
 	glFuncs.glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glFuncs.glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
     
+	// Load mesh from file
 	mainMesh = new Mesh();
     mainMesh->LoadMesh("../DeferredShading/Models/sponza/sponza.obj");
 }
@@ -230,29 +232,21 @@ void GLWidget::paintGL()
 		glVertex3f(0.0f,0.0f,0.0f);
 		glVertex3f(0.0f,0.0f,100.0f);
 	glEnd();
-	
-    glBegin(GL_TRIANGLES);
-        glVertex3f(-10.2f,-10.2f,-10.2f);
-        glVertex3f(-10.2f,10.2f,-10.2f);
-        glVertex3f(10.2f,10.2f,-10.2f);
-        glVertex3f(10.2f,10.2f,10.0f);
-        glVertex3f(-10.3f,10.2f,10.0f);
-        glVertex3f(10.2f,10.2f,-10.2f);
-        glVertex3f(-10.2f,-10.2f,-10.2f);
-        glVertex3f(10.2f,-10.2f,-10.2f);
-        glVertex3f(10.2f,10.2f,-10.2f);
-    glEnd();
-	
+	/*
+	// print test triangle
 	QGLFunctions glFuncs(QGLContext::currentContext());
-    glFuncs.glEnableVertexAttribArray(0);
+
+	GLuint positionLocation = glFuncs.glGetAttribLocation(shaderProgram,"position");
+
+    glFuncs.glEnableVertexAttribArray(positionLocation);
     glFuncs.glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glFuncs.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
-    glFuncs.glDisableVertexAttribArray(0);
-	
-    mainMesh->Render();
+    glFuncs.glDisableVertexAttribArray(positionLocation);
+	*/
+    mainMesh->Render(shaderProgram);
 }
 
 void GLWidget::mousePressEvent(QMouseEvent *event)

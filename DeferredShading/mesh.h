@@ -59,7 +59,7 @@ public:
 
     bool LoadMesh(const std::string& Filename);
 
-    void Render();
+    void Render(GLuint SP);
 
 private:
     bool InitFromScene(const aiScene* pScene, const std::string& Filename);

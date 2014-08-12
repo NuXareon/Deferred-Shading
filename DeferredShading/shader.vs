@@ -1,8 +1,10 @@
-#version 330
+#version 110
 
-layout (location = 0) in vec3 position;
+attribute vec3 position;
+varying vec4 color;
 
 void main()
 {
-    gl_Position = vec4(0.5*position.x,0.5*position.y,0.5*position.z,1.0);
+    gl_Position = gl_ModelViewProjectionMatrix*vec4(position.x,position.y,position.z,1.0);
+	color = vec4(clamp(position, 0.0, 1.0),1.0);
 }
