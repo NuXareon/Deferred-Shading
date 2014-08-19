@@ -39,7 +39,6 @@ private:
     QPoint lastPos;
 	Mesh *mainMesh;
 	GLuint shaderProgram;
-	GLuint vShaderObj;
 
 	bool readFile(const char* path, std::string& out);
 	void initializeLighting();

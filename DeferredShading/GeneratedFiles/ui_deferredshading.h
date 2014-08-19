@@ -25,25 +25,26 @@ QT_BEGIN_NAMESPACE
 class Ui_DeferredShadingClass
 {
 public:
+    QWidget *centralWidget;
     QMenuBar *menuBar;
     QToolBar *mainToolBar;
-    QWidget *centralWidget;
     QStatusBar *statusBar;
 
     void setupUi(QMainWindow *DeferredShadingClass)
     {
         if (DeferredShadingClass->objectName().isEmpty())
             DeferredShadingClass->setObjectName(QString::fromUtf8("DeferredShadingClass"));
-        DeferredShadingClass->resize(600, 400);
-        menuBar = new QMenuBar(DeferredShadingClass);
-        menuBar->setObjectName(QString::fromUtf8("menuBar"));
-        DeferredShadingClass->setMenuBar(menuBar);
-        mainToolBar = new QToolBar(DeferredShadingClass);
-        mainToolBar->setObjectName(QString::fromUtf8("mainToolBar"));
-        DeferredShadingClass->addToolBar(mainToolBar);
+        DeferredShadingClass->resize(1280, 720);
         centralWidget = new QWidget(DeferredShadingClass);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
         DeferredShadingClass->setCentralWidget(centralWidget);
+        menuBar = new QMenuBar(DeferredShadingClass);
+        menuBar->setObjectName(QString::fromUtf8("menuBar"));
+        menuBar->setGeometry(QRect(0, 0, 1280, 21));
+        DeferredShadingClass->setMenuBar(menuBar);
+        mainToolBar = new QToolBar(DeferredShadingClass);
+        mainToolBar->setObjectName(QString::fromUtf8("mainToolBar"));
+        DeferredShadingClass->addToolBar(Qt::TopToolBarArea, mainToolBar);
         statusBar = new QStatusBar(DeferredShadingClass);
         statusBar->setObjectName(QString::fromUtf8("statusBar"));
         DeferredShadingClass->setStatusBar(statusBar);

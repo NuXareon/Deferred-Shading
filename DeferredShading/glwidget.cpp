@@ -5,9 +5,11 @@
 #include <fstream>
 #include <iostream>
 
+#include "texture.h"
+
 const char* VSPath = "shader.vs";
 const char* FSPath = "shader.fs";
-GLuint VBO;
+//GLuint VBO;
 
 GLWidget::GLWidget(QWidget *parent) :
     QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
@@ -130,7 +132,7 @@ void GLWidget::initializeShaders()
 
 	if (!readFile(VSPath, vertexShader)) exit(1);
 	
-	vShaderObj = glFuncs.glCreateShader(GL_VERTEX_SHADER);
+	GLuint vShaderObj = glFuncs.glCreateShader(GL_VERTEX_SHADER);
 
 	const char* shaderFiles[1];
 	shaderFiles[0] = vertexShader.c_str();
@@ -183,7 +185,7 @@ void GLWidget::initializeGL()
     glShadeModel(GL_SMOOTH);
 	//initializeLighting();
 	initializeShaders();
-
+	/*
 	//Test triangle array
 	Vector3f Vertices[3];
     Vertices[0] = Vector3f(-1.0f, -1.0f, 0.0f);
@@ -195,16 +197,21 @@ void GLWidget::initializeGL()
  	glFuncs.glGenBuffers(1, &VBO);
 	glFuncs.glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glFuncs.glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
-    
+    */
 	// Load mesh from file
 	mainMesh = new Mesh();
     mainMesh->LoadMesh("../DeferredShading/Models/sponza/sponza.obj");
+	//Magick::InitializeMagick("C:/Users/NuXe/Documents/GitHub/Deferred-Shading/Win32/Debug");
+	//texture T = texture(GL_TEXTURE_2D, "../DeferredShading/Models/sponza/KAMEN.jpeg");
+	texture T = texture(GL_TEXTURE_2D, "C:/Users/NuXe/Documents/GitHub/Deferred-Shading/DeferredShading/Models/sponza/KAMEN.JPG");
+	//texture T = texture(GL_TEXTURE_2D, "C:/Users/NuXe/Desktop/ImageMagick-6.8.9/images/arc.png");
+	T.Load();
 }
 
 void GLWidget::resizeGL(int width, int height)
 {
     int side = qMin(width, height);
-    glViewport((width - side) / 2, (height - side) / 2, side, side);
+    glViewport(0, 0, width, height);
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -214,13 +221,16 @@ void GLWidget::resizeGL(int width, int height)
 
 void GLWidget::paintGL()
 {
+	QGLFunctions glFuncs(QGLContext::currentContext());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
     glTranslatef(0.0f,0.0f,-Zoom/16.0);
     glRotatef(xRot / 16.0, 1.0, 0.0, 0.0);
     glRotatef(yRot / 16.0, 0.0, 1.0, 0.0);
     glRotatef(zRot / 16.0, 0.0, 0.0, 1.0);
-	glScalef(10,10,10);
+	//glScalef(10,10,10);
+	// Draw axis
+	glFuncs.glUseProgram(0);
 	glBegin(GL_LINES);
 		glColor3f(1.0f,0.0f,0.0f);
 		glVertex3f(0.0f,0.0f,0.0f);
@@ -232,6 +242,8 @@ void GLWidget::paintGL()
 		glVertex3f(0.0f,0.0f,0.0f);
 		glVertex3f(0.0f,0.0f,100.0f);
 	glEnd();
+	// Draw geometry
+	glFuncs.glUseProgram(shaderProgram);
 	/*
 	// print test triangle
 	QGLFunctions glFuncs(QGLContext::currentContext());

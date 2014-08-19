@@ -213,3 +213,11 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+
+#############
+## Exceptions
+#############
+
+!/DeferredShading/ImageMagick/release/
+!/DeferredShading/ImageMagick/debug/
+!/DeferredShading/Assimp/bin/

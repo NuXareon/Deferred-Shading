@@ -1,4 +1,5 @@
 #include "deferredshading.h"
+#include <Magick++.h>
 #include <QtGui/QApplication>
 
 int main(int argc, char *argv[])
