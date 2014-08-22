@@ -2,6 +2,7 @@
 #include <QtOpenGL>
 
 #include "scene.h"
+#include "texture.h"
 
 #define INVALID_BUFFER -1
 
@@ -80,5 +81,5 @@ private:
     };
 
     std::vector<MeshEntry> m_Entries;
-    //std::vector<Texture*> m_Textures;
+    std::vector<Texture*> m_Textures;
 };

@@ -5,7 +5,6 @@
 #include <fstream>
 #include <iostream>
 
-#include "texture.h"
 
 const char* VSPath = "shader.vs";
 const char* FSPath = "shader.fs";
@@ -182,7 +181,7 @@ void GLWidget::initializeGL()
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
-    glShadeModel(GL_SMOOTH);
+    //glShadeModel(GL_SMOOTH);
 	//initializeLighting();
 	initializeShaders();
 	/*
@@ -201,11 +200,12 @@ void GLWidget::initializeGL()
 	// Load mesh from file
 	mainMesh = new Mesh();
     mainMesh->LoadMesh("../DeferredShading/Models/sponza/sponza.obj");
+	//mainMesh->LoadMesh("../DeferredShading/Models/crytek-sponza/sponza.obj");
 	//Magick::InitializeMagick("C:/Users/NuXe/Documents/GitHub/Deferred-Shading/Win32/Debug");
 	//texture T = texture(GL_TEXTURE_2D, "../DeferredShading/Models/sponza/KAMEN.jpeg");
-	texture T = texture(GL_TEXTURE_2D, "C:/Users/NuXe/Documents/GitHub/Deferred-Shading/DeferredShading/Models/sponza/KAMEN.JPG");
+	//Texture T = Texture(GL_TEXTURE_2D, "C:/Users/NuXe/Documents/GitHub/Deferred-Shading/DeferredShading/Models/sponza/KAMEN.JPG");
 	//texture T = texture(GL_TEXTURE_2D, "C:/Users/NuXe/Desktop/ImageMagick-6.8.9/images/arc.png");
-	T.Load();
+	//T.Load();
 }
 
 void GLWidget::resizeGL(int width, int height)

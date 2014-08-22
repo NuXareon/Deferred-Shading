@@ -1,10 +1,10 @@
 #include <QtOpenGL>
 #include <Magick++.h>
 
-class texture
+class Texture
 {
 public:
-	texture(GLenum TextureTarget, const std::string& FileName);
+	Texture(GLenum TextureTarget, const std::string& FileName);
 	bool Load();
 	void Bind(GLenum TextureUnit);
 

@@ -45,7 +45,7 @@ bool Mesh::LoadMesh(const std::string& Filename)
     bool ret = false;
     Assimp::Importer Importer;
 
-    const aiScene* pScene = Importer.ReadFile(Filename.c_str(), aiProcess_Triangulate|aiProcess_GenSmoothNormals);
+    const aiScene* pScene = Importer.ReadFile(Filename.c_str(), aiProcess_Triangulate|aiProcess_GenSmoothNormals|aiProcess_FlipUVs);
 
     // Initialitzation of the Mesh from the data collected by ASSIMP
     if (pScene) ret = InitFromScene(pScene,Filename);
@@ -57,7 +57,7 @@ bool Mesh::InitFromScene(const aiScene *pScene, const std::string &Filename)
 {
     // Resize the meshes and textures vectors
     m_Entries.resize(pScene->mNumMeshes);
-   // m_Textures.resize(pScene->mNumMaterials);
+    m_Textures.resize(pScene->mNumMaterials);
 
     // Initialitzation of all the meshes of the scene
     for (unsigned int i = 0; i < m_Entries.size(); ++i) {
@@ -66,7 +66,7 @@ bool Mesh::InitFromScene(const aiScene *pScene, const std::string &Filename)
     }
 
     // Initialitzation of the materials for the scene
-    return true; //InitMaterials(pScene,Filename);
+    return InitMaterials(pScene,Filename);
 }
 
 void Mesh::InitMesh(unsigned int Index, const aiMesh *paiMesh)
@@ -108,26 +108,79 @@ void Mesh::InitMesh(unsigned int Index, const aiMesh *paiMesh)
     m_Entries[Index].Init(Vertices,Indices);
 }
 
+void getDir(const std::string path, std::string* dir){
+	 std::string::size_type SlashIndex = path.find_last_of("/");
+	 if (SlashIndex == std::string::npos) {
+        *(dir) = ".";
+    }
+    else if (SlashIndex == 0) {
+        *(dir) = "/";
+    }
+    else {
+        *(dir) = path.substr(0, SlashIndex);
+    }
+}
+
+bool Mesh::InitMaterials(const aiScene* pScene, const std::string& Filename){
+   
+    std::string Dir;
+	getDir(Filename,&Dir);
+
+    bool Ret = true;
+
+	for (unsigned int i = 0; i < pScene->mNumMaterials; i++) {
+		const aiMaterial* pMaterial = pScene->mMaterials[i];
+		m_Textures[i] = NULL;
+		// We will only use the diffuse component of the material
+		if (pMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
+			aiString Path;
+			if (pMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &Path, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS) {
+				std::string FullPath = Dir + "/" + Path.data;
+				m_Textures[i] = new Texture(GL_TEXTURE_2D, FullPath.c_str());
+				
+				if (!m_Textures[i]->Load()) {
+					delete m_Textures[i];
+					m_Textures[i] = NULL;
+				}
+			}
+		}
+	}
+	return Ret;
+}
+
 void Mesh::Render(GLuint SP)
 {
 	QGLFunctions glFuncs(QGLContext::currentContext());
     GLuint positionLocation = glFuncs.glGetAttribLocation(SP,"position");
+	GLuint texCoordLocation = glFuncs.glGetAttribLocation(SP,"texCoord");
+	GLuint normLocation = glFuncs.glGetAttribLocation(SP,"norm");
+	GLuint samplerLocation = glFuncs.glGetUniformLocation(SP,"sampler");
 
     glFuncs.glEnableVertexAttribArray(positionLocation);
-    //glEnableVertexAttribArray(1);
-    //glEnableVertexAttribArray(2);
+    glFuncs.glEnableVertexAttribArray(texCoordLocation);
+    glFuncs.glEnableVertexAttribArray(normLocation);
 
     for (unsigned int i = 0; i < m_Entries.size(); ++i)
     {
         glFuncs.glBindBuffer(GL_ARRAY_BUFFER,m_Entries[i].VB);
-        glFuncs.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+        glFuncs.glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+		glFuncs.glVertexAttribPointer(texCoordLocation, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
+		glFuncs.glVertexAttribPointer(normLocation, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
 
         glFuncs.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_Entries[i].IB);
 
-        // Set texture here //
+		const unsigned int materialIndex = m_Entries[i].MaterialIndex;
+
+		if (materialIndex < m_Textures.size() && m_Textures[materialIndex]) {
+			m_Textures[materialIndex]->Bind(GL_TEXTURE0);
+		}
+
+		glFuncs.glUniform1i(samplerLocation, 0);
 
         glDrawElements(GL_TRIANGLES, m_Entries[i].NumIndices, GL_UNSIGNED_INT,0);
     }
 
     glFuncs.glDisableVertexAttribArray(positionLocation);
+	glFuncs.glDisableVertexAttribArray(texCoordLocation);
+	glFuncs.glDisableVertexAttribArray(normLocation);
 }
