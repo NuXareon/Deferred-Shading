@@ -16,6 +16,12 @@ public:
 private:
 	Ui::DeferredShadingClass ui;
 	QSlider *createSlider(Qt::Orientation x);
+
+private slots:
+	void loadModelDia();
+
+signals:
+	void modelPathChange(std::string);
 };
 
 #endif // DEFERREDSHADING_H

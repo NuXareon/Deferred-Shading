@@ -17,6 +17,7 @@ public slots:
     void setYRotation(int angle);
     void setZRotation(int angle);
     void setZoomLevel(int z);
+	void loadModel(std::string path);
 
 signals:
     void xRotationChanged(int angle);
@@ -39,6 +40,7 @@ private:
     QPoint lastPos;
 	Mesh *mainMesh;
 	GLuint shaderProgram;
+	std::string modelPath;
 
 	bool readFile(const char* path, std::string& out);
 	void initializeLighting();

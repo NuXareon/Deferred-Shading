@@ -14,16 +14,28 @@ QSlider *DeferredShading::createSlider(Qt::Orientation x)
     return slider;
 }
 
+void DeferredShading::loadModelDia()
+{
+	QString path = QFileDialog::getOpenFileName(this, tr("Load Model"), "", tr("OBJ files (*.obj);;All Files (*.*)"));
+	if (path != "") emit modelPathChange(path.toStdString());
+}
+
 DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	: QMainWindow(parent, flags)
 {
 	ui.setupUi(this);
 	QHBoxLayout *mainLayout = new QHBoxLayout;
     QVBoxLayout *secondLayout = new QVBoxLayout;
+
     QSlider *xSlider = createSlider(Qt::Vertical);
     QSlider *ySlider = createSlider(Qt::Vertical);
     QSlider *zSlider = createSlider(Qt::Vertical);
     QSlider *zoomSlider = createSlider(Qt::Horizontal);
+
+	QAction *loadModelAct = new QAction(tr("&Load Model"), this);
+	QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
+	fileMenu->addAction(loadModelAct);
+
     GLWidget *glWidget = new GLWidget;
 	
     connect(xSlider,SIGNAL(valueChanged(int)), glWidget, SLOT(setXRotation(int)));
@@ -34,6 +46,8 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
     connect(glWidget, SIGNAL(zRotationChanged(int)), zSlider, SLOT(setValue(int)));
     connect(zoomSlider,SIGNAL(valueChanged(int)), glWidget, SLOT(setZoomLevel(int)));
     connect(glWidget,SIGNAL(zoomChanged(int)), zoomSlider, SLOT(setValue(int)));
+	connect(loadModelAct,SIGNAL(triggered()), this, SLOT(loadModelDia()));
+	connect(this,SIGNAL(modelPathChange(std::string)), glWidget, SLOT(loadModel(std::string)));
 	
     mainLayout->addWidget(glWidget);
     mainLayout->addWidget(xSlider);

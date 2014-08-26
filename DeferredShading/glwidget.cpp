@@ -80,6 +80,13 @@ void GLWidget::setZoomLevel(int z)
     }
 }
 
+void GLWidget::loadModel(std::string path)
+{
+	modelPath = path;
+	mainMesh = new Mesh();
+    mainMesh->LoadMesh(modelPath);
+}
+
 void GLWidget::initializeLighting()
 {
 	glEnable(GL_LIGHTING);
@@ -198,8 +205,7 @@ void GLWidget::initializeGL()
 	glFuncs.glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
     */
 	// Load mesh from file
-	mainMesh = new Mesh();
-    mainMesh->LoadMesh("../DeferredShading/Models/sponza/sponza.obj");
+	loadModel("../DeferredShading/Models/sponza/sponza.obj");
 	//mainMesh->LoadMesh("../DeferredShading/Models/crytek-sponza/sponza.obj");
 	//Magick::InitializeMagick("C:/Users/NuXe/Documents/GitHub/Deferred-Shading/Win32/Debug");
 	//texture T = texture(GL_TEXTURE_2D, "../DeferredShading/Models/sponza/KAMEN.jpeg");
