@@ -12,16 +12,19 @@ class DeferredShading : public QMainWindow
 public:
 	DeferredShading(QWidget *parent = 0, Qt::WFlags flags = 0);
 	~DeferredShading();
+	void keyPressEvent(QKeyEvent* e);
+	void keyReleaseEvent(QKeyEvent* e);
 
 private:
 	Ui::DeferredShadingClass ui;
-	QSlider *createSlider(Qt::Orientation x);
 
 private slots:
 	void loadModelDia();
 
 signals:
 	void modelPathChange(std::string);
+	void keyPressed(int k);
+	void keyReleased(int k);
 };
 
 #endif // DEFERREDSHADING_H

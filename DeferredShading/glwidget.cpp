@@ -1,10 +1,8 @@
-#include <QMouseEvent>
 #include "glwidget.h"
 #include <gl\GLU.h>
 #include <GL\GL.h>
 #include <fstream>
 #include <iostream>
-
 
 const char* VSPath = "shader.vs";
 const char* FSPath = "shader.fs";
@@ -13,24 +11,17 @@ const char* FSPath = "shader.fs";
 GLWidget::GLWidget(QWidget *parent) :
     QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
 {
-    xRot = 0;
-    yRot = 0;
-    zRot = 0;
-	Zoom = 0;
+	xPos=zPos=0.0f;
+	yPos=1.0f;
+	alpha=beta=0.0f;
+	cSpeed = cSensivility = 0.1f;
+	cSpeed = 1.0f;
+	startTimer(1000/60); //60FPS for camera movement
+	setMouseTracking(true);
 }
 
 GLWidget::~GLWidget()
 {
-}
-
-QSize GLWidget::minimumSizeHint() const
-{
-    return QSize(50,50);
-}
-
-QSize GLWidget::sizeHint() const
-{
-    return QSize(400,400);
 }
 
 static void qNormalizeAngle(int &angle)
@@ -39,45 +30,6 @@ static void qNormalizeAngle(int &angle)
         angle += 360 * 16;
     while (angle > 360 * 16)
         angle -= 360 * 16;
-}
-
-void GLWidget::setXRotation(int angle)
-{
-    qNormalizeAngle(angle);
-    if (angle != xRot) {
-        xRot = angle;
-        emit xRotationChanged(angle);
-        updateGL();
-    }
-}
-
-void GLWidget::setYRotation(int angle)
-{
-    qNormalizeAngle(angle);
-    if (angle != yRot) {
-        yRot = angle;
-        emit yRotationChanged(angle);
-        updateGL();
-    }
-}
-
-void GLWidget::setZRotation(int angle)
-{
-    qNormalizeAngle(angle);
-    if (angle != zRot) {
-        zRot = angle;
-        emit zRotationChanged(angle);
-        updateGL();
-    }
-}
-
-void GLWidget::setZoomLevel(int z)
-{
-    if (z != Zoom) {
-        Zoom = z;
-        emit zoomChanged(z);
-        updateGL();
-    }
 }
 
 void GLWidget::loadModel(std::string path)
@@ -191,27 +143,9 @@ void GLWidget::initializeGL()
     //glShadeModel(GL_SMOOTH);
 	//initializeLighting();
 	initializeShaders();
-	/*
-	//Test triangle array
-	Vector3f Vertices[3];
-    Vertices[0] = Vector3f(-1.0f, -1.0f, 0.0f);
-    Vertices[1] = Vector3f(1.0f, -1.0f, 0.0f);
-    Vertices[2] = Vector3f(0.0f, 1.0f, 0.0f);
 
-	QGLFunctions glFuncs(QGLContext::currentContext());
-
- 	glFuncs.glGenBuffers(1, &VBO);
-	glFuncs.glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glFuncs.glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
-    */
 	// Load mesh from file
 	loadModel("../DeferredShading/Models/sponza/sponza.obj");
-	//mainMesh->LoadMesh("../DeferredShading/Models/crytek-sponza/sponza.obj");
-	//Magick::InitializeMagick("C:/Users/NuXe/Documents/GitHub/Deferred-Shading/Win32/Debug");
-	//texture T = texture(GL_TEXTURE_2D, "../DeferredShading/Models/sponza/KAMEN.jpeg");
-	//Texture T = Texture(GL_TEXTURE_2D, "C:/Users/NuXe/Documents/GitHub/Deferred-Shading/DeferredShading/Models/sponza/KAMEN.JPG");
-	//texture T = texture(GL_TEXTURE_2D, "C:/Users/NuXe/Desktop/ImageMagick-6.8.9/images/arc.png");
-	//T.Load();
 }
 
 void GLWidget::resizeGL(int width, int height)
@@ -221,20 +155,23 @@ void GLWidget::resizeGL(int width, int height)
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(60,width/height,1.0,1000.0);
+    gluPerspective(60,width/height,1.0,10000.0);
     glMatrixMode(GL_MODELVIEW);
 }
 
 void GLWidget::paintGL()
 {
+	const float PI = 3.1415927f;
+	float alphaRad = PI*alpha/180;
+	float betaRad = PI*beta/180;
 	QGLFunctions glFuncs(QGLContext::currentContext());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
-    glTranslatef(0.0f,0.0f,-Zoom/16.0);
-    glRotatef(xRot / 16.0, 1.0, 0.0, 0.0);
-    glRotatef(yRot / 16.0, 0.0, 1.0, 0.0);
-    glRotatef(zRot / 16.0, 0.0, 0.0, 1.0);
+	gluLookAt(xPos, yPos, zPos,
+		xPos+cos(betaRad)*cos(alphaRad), yPos+sin(betaRad), zPos-cos(betaRad)*sin(alphaRad),
+		0.0f, 1.0f, 0.0f);
 	//glScalef(10,10,10);
+
 	// Draw axis
 	glFuncs.glUseProgram(0);
 	glBegin(GL_LINES);
@@ -248,40 +185,72 @@ void GLWidget::paintGL()
 		glVertex3f(0.0f,0.0f,0.0f);
 		glVertex3f(0.0f,0.0f,100.0f);
 	glEnd();
+
 	// Draw geometry
 	glFuncs.glUseProgram(shaderProgram);
-	/*
-	// print test triangle
-	QGLFunctions glFuncs(QGLContext::currentContext());
-
-	GLuint positionLocation = glFuncs.glGetAttribLocation(shaderProgram,"position");
-
-    glFuncs.glEnableVertexAttribArray(positionLocation);
-    glFuncs.glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glFuncs.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-
-    glFuncs.glDisableVertexAttribArray(positionLocation);
-	*/
     mainMesh->Render(shaderProgram);
 }
 
-void GLWidget::mousePressEvent(QMouseEvent *event)
+void GLWidget::mousePressEvent(QMouseEvent *e)
 {
-    lastPos = event->pos();
+    lastPos = e->pos();
 }
 
-void GLWidget::mouseMoveEvent(QMouseEvent * event)
+void GLWidget::mouseMoveEvent(QMouseEvent * e)
 {
-    int dx = event->x() - lastPos.x();
-    int dy = event->y() - lastPos.y();
-    if (event->buttons() & Qt::LeftButton) {
-        setXRotation(xRot + 8 * dy);
-        setYRotation(yRot + 8 * dx);
-    } else if (event->buttons() & Qt::RightButton) {
-        setXRotation(xRot + 8 * dy);
-        setZRotation(zRot + 8 * dx);
+    int dx = e->x() - lastPos.x();
+    int dy = e->y() - lastPos.y();
+
+    if (e->buttons() & Qt::LeftButton) {
+		alpha -= dx*cSensivility;
+		beta -= dy*cSensivility;
+		if (beta > 90) beta = 90;
+		else if (beta < -90) beta = -90;
     }
-    lastPos = event->pos();
+    lastPos = e->pos();
+	timerEvent(NULL);
+
+	if (!(keys.contains(Qt::Key_W) || keys.contains(Qt::Key_A) || 
+		keys.contains(Qt::Key_S) || keys.contains(Qt::Key_D))) 
+		updateGL();
+}
+
+void GLWidget::addKey(int k)
+{
+	keys += k;
+}
+
+void GLWidget::removeKey(int k)
+{
+	keys -= k;
+}
+
+void GLWidget::timerEvent(QTimerEvent* e)
+{
+	const float PI = 3.1415927f;
+	float alphaRad = PI*alpha/180;
+	float betaRad = PI*beta/180;
+
+	if (keys.contains(Qt::Key_W)){
+		xPos += cSpeed*cos(betaRad)*cos(alphaRad);
+		yPos += cSpeed*sin(betaRad);
+		zPos -= cSpeed*cos(betaRad)*sin(alphaRad);
+	}
+	if (keys.contains(Qt::Key_A)) {
+		xPos -= cSpeed*sin(alphaRad);
+		zPos -= cSpeed*cos(alphaRad);
+	}
+	if (keys.contains(Qt::Key_S)){
+		xPos -= cSpeed*cos(betaRad)*cos(alphaRad);
+		yPos -= cSpeed*sin(betaRad);
+		zPos += cSpeed*cos(betaRad)*sin(alphaRad);
+	}
+	if (keys.contains(Qt::Key_D)) {
+		xPos += cSpeed*sin(alphaRad);
+		zPos += cSpeed*cos(alphaRad);
+	}
+
+	if (keys.contains(Qt::Key_W) || keys.contains(Qt::Key_A) || 
+		keys.contains(Qt::Key_S) || keys.contains(Qt::Key_D)) 
+		updateGL();
 }

@@ -11,7 +11,7 @@ bool Texture::Load(){
 		image = new Magick::Image(fileName);
 		image->write(&blob, "RGBA");
 	}
-	catch (Magick::Error& error) {
+	catch (Magick::Error& magickError) {
 		return false;
 	}
 

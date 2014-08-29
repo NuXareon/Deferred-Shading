@@ -17,7 +17,6 @@
 #include <QtGui/QMainWindow>
 #include <QtGui/QMenuBar>
 #include <QtGui/QStatusBar>
-#include <QtGui/QToolBar>
 #include <QtGui/QWidget>
 
 QT_BEGIN_NAMESPACE
@@ -27,7 +26,6 @@ class Ui_DeferredShadingClass
 public:
     QWidget *centralWidget;
     QMenuBar *menuBar;
-    QToolBar *mainToolBar;
     QStatusBar *statusBar;
 
     void setupUi(QMainWindow *DeferredShadingClass)
@@ -42,9 +40,6 @@ public:
         menuBar->setObjectName(QString::fromUtf8("menuBar"));
         menuBar->setGeometry(QRect(0, 0, 1280, 21));
         DeferredShadingClass->setMenuBar(menuBar);
-        mainToolBar = new QToolBar(DeferredShadingClass);
-        mainToolBar->setObjectName(QString::fromUtf8("mainToolBar"));
-        DeferredShadingClass->addToolBar(Qt::TopToolBarArea, mainToolBar);
         statusBar = new QStatusBar(DeferredShadingClass);
         statusBar->setObjectName(QString::fromUtf8("statusBar"));
         DeferredShadingClass->setStatusBar(statusBar);

@@ -9,21 +9,10 @@ public:
     GLWidget(QWidget *parent = 0);
     ~GLWidget();
 
-    QSize minimumSizeHint() const;
-    QSize sizeHint() const;
-
 public slots:
-    void setXRotation(int angle);
-    void setYRotation(int angle);
-    void setZRotation(int angle);
-    void setZoomLevel(int z);
 	void loadModel(std::string path);
-
-signals:
-    void xRotationChanged(int angle);
-    void yRotationChanged(int angle);
-    void zRotationChanged(int angle);
-    void zoomChanged(int z);
+	void addKey(int k);
+	void removeKey(int k);
 
 protected:
     void initializeGL();
@@ -31,12 +20,13 @@ protected:
     void resizeGL(int width, int height);
     void mousePressEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
+	void timerEvent(QTimerEvent* event);
 
 private:
-    int xRot;
-    int yRot;
-    int zRot;
-    int Zoom;
+	QSet<int> keys;
+	float xPos, yPos, zPos;
+	float alpha, beta;
+	float cSpeed, cSensivility;
     QPoint lastPos;
 	Mesh *mainMesh;
 	GLuint shaderProgram;
