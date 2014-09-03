@@ -9,15 +9,17 @@ const char* FSPath = "shader.fs";
 //GLuint VBO;
 
 GLWidget::GLWidget(QWidget *parent) :
-    QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
+    QGLWidget()
 {
+	setFocusPolicy(Qt::ClickFocus);
+	setMouseTracking(true);
 	xPos=zPos=0.0f;
 	yPos=1.0f;
 	alpha=beta=0.0f;
-	cSpeed = cSensivility = 0.1f;
+	cSensitivity = 0.1f;
 	cSpeed = 1.0f;
-	startTimer(1000/60); //60FPS for camera movement
-	setMouseTracking(true);
+	inputTimerId = startTimer(1000/60); //30FPS for camera movement
+	drawTimerId = startTimer(0);
 }
 
 GLWidget::~GLWidget()
@@ -146,6 +148,9 @@ void GLWidget::initializeGL()
 
 	// Load mesh from file
 	loadModel("../DeferredShading/Models/sponza/sponza.obj");
+	frames = 0;
+	t = new QTime();
+	t->start();
 }
 
 void GLWidget::resizeGL(int width, int height)
@@ -189,6 +194,20 @@ void GLWidget::paintGL()
 	// Draw geometry
 	glFuncs.glUseProgram(shaderProgram);
     mainMesh->Render(shaderProgram);
+	
+	updateFPS();
+}
+
+void GLWidget::updateFPS()
+{
+	if(frames >= 100) {
+		int time = t->restart();
+		fps = 100000/time;
+		emit updateFPSSignal(fps);
+		frames = 0;
+	} else {
+		frames++;
+	}
 }
 
 void GLWidget::mousePressEvent(QMouseEvent *e)
@@ -202,17 +221,18 @@ void GLWidget::mouseMoveEvent(QMouseEvent * e)
     int dy = e->y() - lastPos.y();
 
     if (e->buttons() & Qt::LeftButton) {
-		alpha -= dx*cSensivility;
-		beta -= dy*cSensivility;
+		alpha -= dx*cSensitivity;
+		beta -= dy*cSensitivity;
 		if (beta > 90) beta = 90;
 		else if (beta < -90) beta = -90;
     }
     lastPos = e->pos();
 	timerEvent(NULL);
-
+	/*
 	if (!(keys.contains(Qt::Key_W) || keys.contains(Qt::Key_A) || 
 		keys.contains(Qt::Key_S) || keys.contains(Qt::Key_D))) 
 		updateGL();
+	*/
 }
 
 void GLWidget::addKey(int k)
@@ -225,32 +245,46 @@ void GLWidget::removeKey(int k)
 	keys -= k;
 }
 
+void GLWidget::modifyCameraSensitivity(QString s)
+{
+	cSensitivity = s.toFloat();
+}
+
+void GLWidget::modifyCameraSpeed(QString s)
+{
+	cSpeed = s.toFloat();
+}
+
 void GLWidget::timerEvent(QTimerEvent* e)
 {
-	const float PI = 3.1415927f;
-	float alphaRad = PI*alpha/180;
-	float betaRad = PI*beta/180;
+	if (e && e->timerId() == inputTimerId) {
+		const float PI = 3.1415927f;
+		float alphaRad = PI*alpha/180;
+		float betaRad = PI*beta/180;
 
-	if (keys.contains(Qt::Key_W)){
-		xPos += cSpeed*cos(betaRad)*cos(alphaRad);
-		yPos += cSpeed*sin(betaRad);
-		zPos -= cSpeed*cos(betaRad)*sin(alphaRad);
+		if (keys.contains(Qt::Key_W)){
+			xPos += cSpeed*cos(betaRad)*cos(alphaRad);
+			yPos += cSpeed*sin(betaRad);
+			zPos -= cSpeed*cos(betaRad)*sin(alphaRad);
+		}
+		if (keys.contains(Qt::Key_A)) {
+			xPos -= cSpeed*sin(alphaRad);
+			zPos -= cSpeed*cos(alphaRad);
+		}
+		if (keys.contains(Qt::Key_S)){
+			xPos -= cSpeed*cos(betaRad)*cos(alphaRad);
+			yPos -= cSpeed*sin(betaRad);
+			zPos += cSpeed*cos(betaRad)*sin(alphaRad);
+		}
+		if (keys.contains(Qt::Key_D)) {
+			xPos += cSpeed*sin(alphaRad);
+			zPos += cSpeed*cos(alphaRad);
+		}
 	}
-	if (keys.contains(Qt::Key_A)) {
-		xPos -= cSpeed*sin(alphaRad);
-		zPos -= cSpeed*cos(alphaRad);
-	}
-	if (keys.contains(Qt::Key_S)){
-		xPos -= cSpeed*cos(betaRad)*cos(alphaRad);
-		yPos -= cSpeed*sin(betaRad);
-		zPos += cSpeed*cos(betaRad)*sin(alphaRad);
-	}
-	if (keys.contains(Qt::Key_D)) {
-		xPos += cSpeed*sin(alphaRad);
-		zPos += cSpeed*cos(alphaRad);
-	}
-
+	/*
 	if (keys.contains(Qt::Key_W) || keys.contains(Qt::Key_A) || 
 		keys.contains(Qt::Key_S) || keys.contains(Qt::Key_D)) 
 		updateGL();
+	*/
+	else updateGL();
 }

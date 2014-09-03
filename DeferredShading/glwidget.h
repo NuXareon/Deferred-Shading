@@ -1,4 +1,5 @@
 #include <QGLWidget>
+#include <QTime>
 #include "mesh.h"
 
 class GLWidget : public QGLWidget
@@ -13,6 +14,11 @@ public slots:
 	void loadModel(std::string path);
 	void addKey(int k);
 	void removeKey(int k);
+	void modifyCameraSensitivity(QString s);
+	void modifyCameraSpeed(QString s);
+
+signals:
+	void updateFPSSignal(int fps);
 
 protected:
     void initializeGL();
@@ -26,13 +32,17 @@ private:
 	QSet<int> keys;
 	float xPos, yPos, zPos;
 	float alpha, beta;
-	float cSpeed, cSensivility;
+	float cSpeed, cSensitivity;
     QPoint lastPos;
 	Mesh *mainMesh;
 	GLuint shaderProgram;
 	std::string modelPath;
+	QTime* t;
+	int fps, frames;
+	int inputTimerId, drawTimerId;
 
 	bool readFile(const char* path, std::string& out);
 	void initializeLighting();
 	void initializeShaders();
+	void updateFPS();
 };
