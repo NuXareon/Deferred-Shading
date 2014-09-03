@@ -148,17 +148,37 @@ bool Mesh::InitMaterials(const aiScene* pScene, const std::string& Filename){
 	return Ret;
 }
 
+void Mesh::initLocations(GLuint SP)
+{
+	QGLFunctions glFuncs(QGLContext::currentContext());
+
+    positionLocation = glFuncs.glGetAttribLocation(SP,"position");
+	texCoordLocation = glFuncs.glGetAttribLocation(SP,"texCoord");
+	normLocation = glFuncs.glGetAttribLocation(SP,"norm");
+	samplerLocation = glFuncs.glGetUniformLocation(SP,"sampler");
+	ambientColorLocation = glFuncs.glGetUniformLocation(SP,"aLight.color");
+	ambientIntensityLocation = glFuncs.glGetUniformLocation(SP,"aLight.intensity");
+	directionalColorLocation = glFuncs.glGetUniformLocation(SP,"dLight.color");
+	directionalIntensityLocation = glFuncs.glGetUniformLocation(SP,"dLight.intensity");
+	directionalDirectionLocation = glFuncs.glGetUniformLocation(SP,"dLight.direction");
+}
+
 void Mesh::Render(GLuint SP)
 {
 	QGLFunctions glFuncs(QGLContext::currentContext());
-    GLuint positionLocation = glFuncs.glGetAttribLocation(SP,"position");
-	GLuint texCoordLocation = glFuncs.glGetAttribLocation(SP,"texCoord");
-	GLuint normLocation = glFuncs.glGetAttribLocation(SP,"norm");
-	GLuint samplerLocation = glFuncs.glGetUniformLocation(SP,"sampler");
 
     glFuncs.glEnableVertexAttribArray(positionLocation);
     glFuncs.glEnableVertexAttribArray(texCoordLocation);
     glFuncs.glEnableVertexAttribArray(normLocation);
+
+	// Ambient light parameters
+	glFuncs.glUniform3f(ambientColorLocation, 1.0f, 1.0f, 1.0f);
+	glFuncs.glUniform1f(ambientIntensityLocation,0.7f);
+
+	// Directional light parameters
+	glFuncs.glUniform3f(directionalColorLocation, 1.0f, 1.0f, 1.0f);
+	glFuncs.glUniform1f(directionalIntensityLocation,0.6f);
+	glFuncs.glUniform3f(directionalDirectionLocation,-0.577f,-0.577f,-0.577f); // needs to be normilized
 
     for (unsigned int i = 0; i < m_Entries.size(); ++i)
     {

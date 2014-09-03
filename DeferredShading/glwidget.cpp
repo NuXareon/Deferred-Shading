@@ -39,6 +39,7 @@ void GLWidget::loadModel(std::string path)
 	modelPath = path;
 	mainMesh = new Mesh();
     mainMesh->LoadMesh(modelPath);
+	mainMesh->initLocations(shaderProgram);
 }
 
 void GLWidget::initializeLighting()
@@ -189,6 +190,9 @@ void GLWidget::paintGL()
 		glColor3f(0.0f,0.0f,1.0f);
 		glVertex3f(0.0f,0.0f,0.0f);
 		glVertex3f(0.0f,0.0f,100.0f);
+		glColor3f(0.5f,0.5f,0.5f);
+		glVertex3f(0.0f,0.0f,0.0f);
+		glVertex3f(100.0f,100.0f,100.0f);
 	glEnd();
 
 	// Draw geometry

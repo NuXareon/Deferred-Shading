@@ -59,7 +59,7 @@ public:
     ~Mesh();
 
     bool LoadMesh(const std::string& Filename);
-
+	void initLocations(GLuint SP);
     void Render(GLuint SP);
 
 private:
@@ -82,4 +82,14 @@ private:
 
     std::vector<MeshEntry> m_Entries;
     std::vector<Texture*> m_Textures;
+
+	GLuint positionLocation;
+	GLuint texCoordLocation;
+	GLuint normLocation;
+	GLuint samplerLocation;
+	GLuint ambientColorLocation;
+	GLuint ambientIntensityLocation;
+	GLuint directionalColorLocation;
+	GLuint directionalIntensityLocation;
+	GLuint directionalDirectionLocation;
 };
