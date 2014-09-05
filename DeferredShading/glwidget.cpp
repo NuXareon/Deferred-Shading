@@ -3,10 +3,11 @@
 #include <GL\GL.h>
 #include <fstream>
 #include <iostream>
+#include <sstream>
+#include <random>
 
 const char* VSPath = "shader.vs";
 const char* FSPath = "shader.fs";
-//GLuint VBO;
 
 GLWidget::GLWidget(QWidget *parent) :
     QGLWidget()
@@ -18,8 +19,9 @@ GLWidget::GLWidget(QWidget *parent) :
 	alpha=beta=0.0f;
 	cSensitivity = 0.1f;
 	cSpeed = 1.0f;
+	nLights = 0;
 	inputTimerId = startTimer(1000/60); //30FPS for camera movement
-	drawTimerId = startTimer(0);
+	drawTimerId = startTimer(0); // render at max fps, must turn off v-sync
 }
 
 GLWidget::~GLWidget()
@@ -39,10 +41,9 @@ void GLWidget::loadModel(std::string path)
 	modelPath = path;
 	mainMesh = new Mesh();
     mainMesh->LoadMesh(modelPath);
-	mainMesh->initLocations(shaderProgram);
 }
 
-void GLWidget::initializeLighting()
+void GLWidget::initializeLightingGL()
 {
 	glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
@@ -137,6 +138,60 @@ void GLWidget::initializeShaders()
 	glFuncs.glUseProgram(shaderProgram);
 }
 
+void GLWidget::initializeLighting()
+{
+	std::default_random_engine generator((unsigned int)time(0));
+
+	// -----sponza settings-----
+	/*
+	std::uniform_real_distribution<float> distributionX(-17.0,17.0);
+	std::uniform_real_distribution<float> distributionY(-1.0,15.0);
+	std::uniform_real_distribution<float> distributionZ(-7.0,7.0);
+	std::uniform_real_distribution<float> distributionC(0.0,1.0);
+	std::uniform_real_distribution<float> distributionI(0.0,2.0);
+	float pAttenuation[] = {1.0f, 0.2f, 0.5f};
+	*/
+	// -----sponza-crytek settings-----
+	
+	std::uniform_real_distribution<float> distributionX(-1400.0,1400.0);
+	std::uniform_real_distribution<float> distributionY(-125.0,1200.0);
+	std::uniform_real_distribution<float> distributionZ(-700.0,700.0);
+	std::uniform_real_distribution<float> distributionC(0.0,1.0);
+	std::uniform_real_distribution<float> distributionI(0.0,1000.0);
+	
+	float pAttenuation[] = {2.5f, 5.0f, 0.015f};
+	nLights = 100;
+	
+	for (unsigned int i = 0; i < nLights; i++){
+		float pColor[] = {distributionC(generator), distributionC(generator), distributionC(generator)};
+		float pPosition[] = {distributionX(generator),distributionY(generator),distributionZ(generator)};
+		float pIntensity = distributionI(generator);
+		pointLightsArr[i] = pointLight(pColor, pIntensity, pPosition, pAttenuation);
+	}
+	
+	float wColor[] = {1.0f,1.0f,1.0f};
+	float dDirection[] = {-0.577f,-0.577f,-0.577f};
+	
+	aLight = ambientLight(wColor, 0.1f);
+	dLight = directionalLight(wColor, 0.0f, dDirection); 
+	/*
+	float rColor[] = {1.0f,0.0f,0.0f};
+	float pos0[] = {0.0f,1.0f,1.0f};
+	pointLightsArr[0] = pointLight(rColor, 1.0f, pos0, pAttenuation); 
+	
+	float gColor[] = {0.0f,1.0f,0.0f};
+	float bColor[] = {0.0f,0.0f,1.0f};
+	
+	float pos1[] = {1.0f,1.0f,0.0f};
+	float pos2[] = {-1.0f,1.0f,0.0f};
+	float attenuation[] = {1.0f, 0.5f, 0.2f};
+	
+	
+	pointLightsArr[1] = pointLight(gColor, 1.0f, pos1, attenuation);
+	pointLightsArr[2] = pointLight(bColor, 1.0f, pos2, attenuation);
+	*/
+}
+
 void GLWidget::initializeGL()
 {
     qglClearColor(QColor::fromRgb(0,0,0));
@@ -144,8 +199,11 @@ void GLWidget::initializeGL()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     //glShadeModel(GL_SMOOTH);
-	//initializeLighting();
+	//initializeLightingGL();
 	initializeShaders();
+	initLocations();
+	initializeLighting();
+	
 
 	// Load mesh from file
 	loadModel("../DeferredShading/Models/sponza/sponza.obj");
@@ -163,6 +221,85 @@ void GLWidget::resizeGL(int width, int height)
     glLoadIdentity();
     gluPerspective(60,width/height,1.0,10000.0);
     glMatrixMode(GL_MODELVIEW);
+}
+
+void GLWidget::initLocations()
+{
+	QGLFunctions glFuncs(QGLContext::currentContext());
+
+    positionLocation = glFuncs.glGetAttribLocation(shaderProgram,"position");
+	texCoordLocation = glFuncs.glGetAttribLocation(shaderProgram,"texCoord");
+	normLocation = glFuncs.glGetAttribLocation(shaderProgram,"norm");
+	samplerLocation = glFuncs.glGetUniformLocation(shaderProgram,"sampler");
+	ambientColorLocation = glFuncs.glGetUniformLocation(shaderProgram,"aLight.color");
+	ambientIntensityLocation = glFuncs.glGetUniformLocation(shaderProgram,"aLight.intensity");
+	directionalColorLocation = glFuncs.glGetUniformLocation(shaderProgram,"dLight.color");
+	directionalIntensityLocation = glFuncs.glGetUniformLocation(shaderProgram,"dLight.intensity");
+	directionalDirectionLocation = glFuncs.glGetUniformLocation(shaderProgram,"dLight.direction");
+	std::stringstream sstm;
+	std::string uniformName;
+	std::string pl_str = "pointLights[";
+	std::string color_str = "].color";
+	std::string intensity_str = "].intensity";
+	std::string position_str = "].position";
+	std::string attenuation_str = "].attenuation";
+	std::string str_arr[] = {color_str, intensity_str, position_str, attenuation_str};
+	for (unsigned int i = 0; i < N_MAX_LIGHTS; i++) {
+		for (unsigned int j = 0; j < 4; j++) {
+			sstm << pl_str << i << str_arr[j];
+			uniformName = sstm.str();
+			if (j == 0) pointLightLocations[i].color = glFuncs.glGetUniformLocation(shaderProgram,uniformName.c_str());
+			else if (j == 1) pointLightLocations[i].intensity = glFuncs.glGetUniformLocation(shaderProgram,uniformName.c_str());
+			else if (j == 2) pointLightLocations[i].position = glFuncs.glGetUniformLocation(shaderProgram,uniformName.c_str());
+			else if (j == 3) pointLightLocations[i].attenuation = glFuncs.glGetUniformLocation(shaderProgram,uniformName.c_str());
+			sstm.str(std::string());
+			sstm.clear();
+		}
+
+		/*
+		sstm << pl_str << i << intensity_str;
+		uniformName = sstm.str();
+		pointLightLocations[i].color = glFuncs.glGetUniformLocation(shaderProgram,uniformName.c_str());
+		sstm.str(std::string());
+		sstm.clear();
+
+		sstm << pl_str << i << position_str;
+		uniformName = sstm.str();
+		pointLightLocations[i].color = glFuncs.glGetUniformLocation(shaderProgram,uniformName.c_str());
+		sstm.str(std::string());
+		sstm.clear();
+
+		sstm << pl_str << i << attenuation_str;
+		uniformName = sstm.str();
+		pointLightLocations[i].color = glFuncs.glGetUniformLocation(shaderProgram,uniformName.c_str());
+		sstm.str(std::string());
+		sstm.clear();
+		*/
+	}
+	nLightsLocation = glFuncs.glGetUniformLocation(shaderProgram,"nLights");
+}
+
+void GLWidget::setLightUniforms()
+{
+	QGLFunctions glFuncs(QGLContext::currentContext());
+
+	// Ambient light parameters
+	glFuncs.glUniform3f(ambientColorLocation, aLight.color.r, aLight.color.g, aLight.color.b);
+	glFuncs.glUniform1f(ambientIntensityLocation,aLight.intensity);
+
+	// Directional light parameters
+	glFuncs.glUniform3f(directionalColorLocation, dLight.color.r, dLight.color.g, dLight.color.b);
+	glFuncs.glUniform1f(directionalIntensityLocation,dLight.intensity);
+	glFuncs.glUniform3f(directionalDirectionLocation,dLight.direction.x,dLight.direction.y,dLight.direction.z); // must to be normilized
+
+	for (unsigned int i = 0; i < nLights; ++i) {
+		glFuncs.glUniform3f(pointLightLocations[i].color, pointLightsArr[i].color.r, pointLightsArr[i].color.g, pointLightsArr[i].color.b);
+		glFuncs.glUniform1f(pointLightLocations[i].intensity, pointLightsArr[i].intensity);
+		glFuncs.glUniform3f(pointLightLocations[i].position, pointLightsArr[i].position.x, pointLightsArr[i].position.y, pointLightsArr[i].position.z);
+		glFuncs.glUniform3f(pointLightLocations[i].attenuation, pointLightsArr[i].attenuation.constant, pointLightsArr[i].attenuation.linear, pointLightsArr[i].attenuation.exp);
+	}
+	glFuncs.glUniform1i(nLightsLocation, nLights);
+
 }
 
 void GLWidget::paintGL()
@@ -197,7 +334,8 @@ void GLWidget::paintGL()
 
 	// Draw geometry
 	glFuncs.glUseProgram(shaderProgram);
-    mainMesh->Render(shaderProgram);
+	setLightUniforms();
+    mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
 	
 	updateFPS();
 }
