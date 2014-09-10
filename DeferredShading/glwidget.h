@@ -3,7 +3,9 @@
 #include "mesh.h"
 
 #define N_MAX_LIGHTS	100
+#define	INITIAL_LIGHTS	20
 
+// NOTE: SHOULD MOVE STRUCT TO A MORE SUITABLE LOCATION
 struct ambientLight{
 	struct {
 		float r; float g; float b;
@@ -34,6 +36,7 @@ struct directionalLight{
 	}
 };
 
+// Contains infromation about the color, intensity, position and attenuation of a point light.
 struct pointLight{
 	struct {
 		float r; float g; float b;
@@ -64,11 +67,15 @@ public:
     ~GLWidget();
 
 public slots:
-	void loadModel(std::string path);
+	// Keyboard
 	void addKey(int k);
 	void removeKey(int k);
+	// Camera
 	void modifyCameraSensitivity(QString s);
 	void modifyCameraSpeed(QString s);
+	// Misc.
+	void loadModel(std::string path);					// Loads a model located on path.
+	void genLightning(int n);							// Modifies nLights and regenerates lightning, see initializeLightning().
 
 signals:
 	void updateFPSSignal(int fps);
@@ -82,18 +89,21 @@ protected:
 	void timerEvent(QTimerEvent* event);
 
 private:
+	// Keyboard
 	QSet<int> keys;
+	// Camera
 	float xPos, yPos, zPos;
 	float alpha, beta;
 	float cSpeed, cSensitivity;
     QPoint lastPos;
+	// Mesh info
 	Mesh *mainMesh;
-	GLuint shaderProgram;
 	std::string modelPath;
+	GLuint shaderProgram;
+	// Timers
 	QTime* t;
 	int fps, frames;
 	int inputTimerId, drawTimerId;
-
 	// Shader atribute and uniform locations
 	GLuint positionLocation;
 	GLuint texCoordLocation;
@@ -111,17 +121,17 @@ private:
 		GLuint attenuation;
 	} pointLightLocations[N_MAX_LIGHTS];
 	GLuint nLightsLocation;
-
-	ambientLight aLight;						// Global ambient light
-	directionalLight dLight;					// Global directional light (will be removed at some point probably)
-	pointLight pointLightsArr[N_MAX_LIGHTS];	// Array with the maximum number of lights
+	// Lights
+	ambientLight aLight;								// Global ambient light
+	directionalLight dLight;							// Global directional light (will be removed at some point probably)
+	pointLight pointLightsArr[N_MAX_LIGHTS];			// Array with the maximum number of lights
 	unsigned int nLights;								// Actual number of lights (nLights < N_MAX_LIGHTS)
-
-	bool readFile(const char* path, std::string& out);
-	void initializeLightingGL();
-	void initializeLighting();
-	void initializeShaders();
-	void updateFPS();
-	void initLocations();
-	void setLightUniforms();
+	// Functions
+	bool readFile(const char* path, std::string& out);	// Reads a text file on path and returns its contents on out.
+	void initializeLightingGL();						// Initializes lightning on openGL. (not used)(should be remove)
+	void initializeLighting();							// Initializes nLights point lights with pseudo-random attributes.
+	void initializeShaders();							// Reads and compiles the vertex and fragment shader.
+	void updateFPS();									// Keeps track of the fps of the painGL function.
+	void initLocations();								// Initializes the lovation variables from the shaders.
+	void setLightUniforms();							// Sends lightning information to the shaders.
 };

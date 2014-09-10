@@ -1,6 +1,5 @@
 #include "glwidget.h"
 #include <gl\GLU.h>
-#include <GL\GL.h>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -12,28 +11,24 @@ const char* FSPath = "shader.fs";
 GLWidget::GLWidget(QWidget *parent) :
     QGLWidget()
 {
-	setFocusPolicy(Qt::ClickFocus);
-	setMouseTracking(true);
+	// Qt
+	setFocusPolicy(Qt::ClickFocus);			// Tells Qt how to manage the focues (mouse click).
+	setMouseTracking(true);					// Enables tracking of the mouse
+	// Camera
 	xPos=zPos=0.0f;
 	yPos=1.0f;
 	alpha=beta=0.0f;
 	cSensitivity = 0.1f;
 	cSpeed = 1.0f;
-	nLights = 0;
-	inputTimerId = startTimer(1000/60); //30FPS for camera movement
-	drawTimerId = startTimer(0); // render at max fps, must turn off v-sync
+	// Lights
+	nLights = INITIAL_LIGHTS;
+	// Timers
+	inputTimerId = startTimer(1000/60);		// Camera refresh rate (60 FPS)
+	drawTimerId = startTimer(0);			// Render refresh rate, we want to measure eficiency so we need max render speed. V-SYNC MUST BE TURNED OFF.
 }
 
 GLWidget::~GLWidget()
 {
-}
-
-static void qNormalizeAngle(int &angle)
-{
-    while (angle < 0)
-        angle += 360 * 16;
-    while (angle > 360 * 16)
-        angle -= 360 * 16;
 }
 
 void GLWidget::loadModel(std::string path)
@@ -65,6 +60,12 @@ void GLWidget::initializeLightingGL()
 	glLightfv(GL_LIGHT1, GL_POSITION, lightPosition2);
 	glLightfv(GL_LIGHT1, GL_SPECULAR, light_specular);
 	glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, 0.3f);
+}
+
+void GLWidget::genLightning(int n)
+{
+	nLights = n;
+	initializeLighting();
 }
 
 bool GLWidget::readFile(const char* path, std::string& out)
@@ -132,95 +133,12 @@ void GLWidget::initializeShaders()
 
 	glFuncs.glAttachShader(shaderProgram,fShaderObj);
 	glFuncs.glLinkProgram(shaderProgram);
-	glFuncs.glGetProgramiv(shaderProgram,GL_LINK_STATUS,&success);
+	//glFuncs.glGetProgramiv(shaderProgram,GL_LINK_STATUS,&success);
 	glFuncs.glValidateProgram(shaderProgram);
-	glFuncs.glGetProgramiv(shaderProgram,GL_VALIDATE_STATUS,&success);
+	//glFuncs.glGetProgramiv(shaderProgram,GL_VALIDATE_STATUS,&success);
 	glFuncs.glUseProgram(shaderProgram);
-}
 
-void GLWidget::initializeLighting()
-{
-	std::default_random_engine generator((unsigned int)time(0));
-
-	// -----sponza settings-----
-	/*
-	std::uniform_real_distribution<float> distributionX(-17.0,17.0);
-	std::uniform_real_distribution<float> distributionY(-1.0,15.0);
-	std::uniform_real_distribution<float> distributionZ(-7.0,7.0);
-	std::uniform_real_distribution<float> distributionC(0.0,1.0);
-	std::uniform_real_distribution<float> distributionI(0.0,2.0);
-	float pAttenuation[] = {1.0f, 0.2f, 0.5f};
-	*/
-	// -----sponza-crytek settings-----
-	
-	std::uniform_real_distribution<float> distributionX(-1400.0,1400.0);
-	std::uniform_real_distribution<float> distributionY(-125.0,1200.0);
-	std::uniform_real_distribution<float> distributionZ(-700.0,700.0);
-	std::uniform_real_distribution<float> distributionC(0.0,1.0);
-	std::uniform_real_distribution<float> distributionI(0.0,1000.0);
-	
-	float pAttenuation[] = {2.5f, 5.0f, 0.015f};
-	nLights = 100;
-	
-	for (unsigned int i = 0; i < nLights; i++){
-		float pColor[] = {distributionC(generator), distributionC(generator), distributionC(generator)};
-		float pPosition[] = {distributionX(generator),distributionY(generator),distributionZ(generator)};
-		float pIntensity = distributionI(generator);
-		pointLightsArr[i] = pointLight(pColor, pIntensity, pPosition, pAttenuation);
-	}
-	
-	float wColor[] = {1.0f,1.0f,1.0f};
-	float dDirection[] = {-0.577f,-0.577f,-0.577f};
-	
-	aLight = ambientLight(wColor, 0.1f);
-	dLight = directionalLight(wColor, 0.0f, dDirection); 
-	/*
-	float rColor[] = {1.0f,0.0f,0.0f};
-	float pos0[] = {0.0f,1.0f,1.0f};
-	pointLightsArr[0] = pointLight(rColor, 1.0f, pos0, pAttenuation); 
-	
-	float gColor[] = {0.0f,1.0f,0.0f};
-	float bColor[] = {0.0f,0.0f,1.0f};
-	
-	float pos1[] = {1.0f,1.0f,0.0f};
-	float pos2[] = {-1.0f,1.0f,0.0f};
-	float attenuation[] = {1.0f, 0.5f, 0.2f};
-	
-	
-	pointLightsArr[1] = pointLight(gColor, 1.0f, pos1, attenuation);
-	pointLightsArr[2] = pointLight(bColor, 1.0f, pos2, attenuation);
-	*/
-}
-
-void GLWidget::initializeGL()
-{
-    qglClearColor(QColor::fromRgb(0,0,0));
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    //glShadeModel(GL_SMOOTH);
-	//initializeLightingGL();
-	initializeShaders();
-	initLocations();
-	initializeLighting();
-	
-
-	// Load mesh from file
-	loadModel("../DeferredShading/Models/sponza/sponza.obj");
-	frames = 0;
-	t = new QTime();
-	t->start();
-}
-
-void GLWidget::resizeGL(int width, int height)
-{
-    int side = qMin(width, height);
-    glViewport(0, 0, width, height);
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(60,width/height,1.0,10000.0);
-    glMatrixMode(GL_MODELVIEW);
+	// TODO: check link and validation errors.
 }
 
 void GLWidget::initLocations()
@@ -255,28 +173,78 @@ void GLWidget::initLocations()
 			sstm.str(std::string());
 			sstm.clear();
 		}
-
-		/*
-		sstm << pl_str << i << intensity_str;
-		uniformName = sstm.str();
-		pointLightLocations[i].color = glFuncs.glGetUniformLocation(shaderProgram,uniformName.c_str());
-		sstm.str(std::string());
-		sstm.clear();
-
-		sstm << pl_str << i << position_str;
-		uniformName = sstm.str();
-		pointLightLocations[i].color = glFuncs.glGetUniformLocation(shaderProgram,uniformName.c_str());
-		sstm.str(std::string());
-		sstm.clear();
-
-		sstm << pl_str << i << attenuation_str;
-		uniformName = sstm.str();
-		pointLightLocations[i].color = glFuncs.glGetUniformLocation(shaderProgram,uniformName.c_str());
-		sstm.str(std::string());
-		sstm.clear();
-		*/
 	}
 	nLightsLocation = glFuncs.glGetUniformLocation(shaderProgram,"nLights");
+}
+
+void GLWidget::initializeLighting()
+{
+	// Initialize generator
+	std::default_random_engine generator((unsigned int)time(0));
+
+	// -----sponza settings-----
+	/*
+	std::uniform_real_distribution<float> distributionX(-17.0,17.0);
+	std::uniform_real_distribution<float> distributionY(-1.0,15.0);
+	std::uniform_real_distribution<float> distributionZ(-7.0,7.0);
+	std::uniform_real_distribution<float> distributionC(0.0,1.0);
+	std::uniform_real_distribution<float> distributionI(0.0,2.0);
+	float pAttenuation[] = {1.0f, 0.2f, 0.5f};
+	*/
+	// -----sponza-crytek settings-----
+	
+	// Initialize distributions (TODO: pre-calculate max/min for the model)
+	std::uniform_real_distribution<float> distributionX(-1400.0,1400.0);
+	std::uniform_real_distribution<float> distributionY(-125.0,1200.0);
+	std::uniform_real_distribution<float> distributionZ(-700.0,700.0);
+	std::uniform_real_distribution<float> distributionC(0.0,1.0);
+	std::uniform_real_distribution<float> distributionI(0.0,1000.0);
+	float pAttenuation[] = {2.5f, 5.0f, 0.015f};
+	
+	// Populate pointLightsArr with nLight
+	for (unsigned int i = 0; i < nLights; i++){
+		float pColor[] = {distributionC(generator), distributionC(generator), distributionC(generator)};
+		float pPosition[] = {distributionX(generator),distributionY(generator),distributionZ(generator)};
+		float pIntensity = distributionI(generator);
+		pointLightsArr[i] = pointLight(pColor, pIntensity, pPosition, pAttenuation);
+	}
+	
+	// Directional + Ambient lights (remove?)
+	float wColor[] = {1.0f,1.0f,1.0f};
+	float dDirection[] = {-0.577f,-0.577f,-0.577f};
+	
+	aLight = ambientLight(wColor, 0.1f);
+	dLight = directionalLight(wColor, 0.0f, dDirection); 
+}
+
+void GLWidget::initializeGL()
+{
+    qglClearColor(QColor::fromRgb(0,0,0));
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    //glShadeModel(GL_SMOOTH);
+	//initializeLightingGL();
+	initializeShaders();
+	initLocations();
+	initializeLighting();
+	
+	// Load mesh from file
+	loadModel("../DeferredShading/Models/sponza/sponza.obj");
+	frames = 0;
+	t = new QTime();
+	t->start();
+}
+
+void GLWidget::resizeGL(int width, int height)
+{
+    int side = qMin(width, height);
+    glViewport(0, 0, width, height);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(60,width/height,1.0,10000.0);
+    glMatrixMode(GL_MODELVIEW);
 }
 
 void GLWidget::setLightUniforms()
@@ -290,8 +258,9 @@ void GLWidget::setLightUniforms()
 	// Directional light parameters
 	glFuncs.glUniform3f(directionalColorLocation, dLight.color.r, dLight.color.g, dLight.color.b);
 	glFuncs.glUniform1f(directionalIntensityLocation,dLight.intensity);
-	glFuncs.glUniform3f(directionalDirectionLocation,dLight.direction.x,dLight.direction.y,dLight.direction.z); // must to be normilized
+	glFuncs.glUniform3f(directionalDirectionLocation,dLight.direction.x,dLight.direction.y,dLight.direction.z); // must be normilized
 
+	// Point lights parameters
 	for (unsigned int i = 0; i < nLights; ++i) {
 		glFuncs.glUniform3f(pointLightLocations[i].color, pointLightsArr[i].color.r, pointLightsArr[i].color.g, pointLightsArr[i].color.b);
 		glFuncs.glUniform1f(pointLightLocations[i].intensity, pointLightsArr[i].intensity);
@@ -310,12 +279,12 @@ void GLWidget::paintGL()
 	QGLFunctions glFuncs(QGLContext::currentContext());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
-	gluLookAt(xPos, yPos, zPos,
-		xPos+cos(betaRad)*cos(alphaRad), yPos+sin(betaRad), zPos-cos(betaRad)*sin(alphaRad),
-		0.0f, 1.0f, 0.0f);
-	//glScalef(10,10,10);
+	gluLookAt(	xPos, yPos, zPos,
+				xPos+cos(betaRad)*cos(alphaRad), yPos+sin(betaRad), zPos-cos(betaRad)*sin(alphaRad),
+				0.0f, 1.0f, 0.0f);
 
 	// Draw axis
+	/*
 	glFuncs.glUseProgram(0);
 	glBegin(GL_LINES);
 		glColor3f(1.0f,0.0f,0.0f);
@@ -328,10 +297,10 @@ void GLWidget::paintGL()
 		glVertex3f(0.0f,0.0f,0.0f);
 		glVertex3f(0.0f,0.0f,100.0f);
 		glColor3f(0.5f,0.5f,0.5f);
-		glVertex3f(0.0f,0.0f,0.0f);
-		glVertex3f(100.0f,100.0f,100.0f);
+		//glVertex3f(0.0f,0.0f,0.0f);
+		//glVertex3f(100.0f,100.0f,100.0f);
 	glEnd();
-
+	*/
 	// Draw geometry
 	glFuncs.glUseProgram(shaderProgram);
 	setLightUniforms();
@@ -370,11 +339,6 @@ void GLWidget::mouseMoveEvent(QMouseEvent * e)
     }
     lastPos = e->pos();
 	timerEvent(NULL);
-	/*
-	if (!(keys.contains(Qt::Key_W) || keys.contains(Qt::Key_A) || 
-		keys.contains(Qt::Key_S) || keys.contains(Qt::Key_D))) 
-		updateGL();
-	*/
 }
 
 void GLWidget::addKey(int k)
@@ -423,10 +387,5 @@ void GLWidget::timerEvent(QTimerEvent* e)
 			zPos += cSpeed*cos(alphaRad);
 		}
 	}
-	/*
-	if (keys.contains(Qt::Key_W) || keys.contains(Qt::Key_A) || 
-		keys.contains(Qt::Key_S) || keys.contains(Qt::Key_D)) 
-		updateGL();
-	*/
 	else updateGL();
 }
