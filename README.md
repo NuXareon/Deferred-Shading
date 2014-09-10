@@ -15,6 +15,9 @@ TODO
 
 - Create an auxiliary class w/ common methods and structures.
 - Add max/min coords calc. of the model for lighting placement, editable through UI.
+- Linux support.
+- Change poit light attenuation to only lineal.
+- Fixed render framerate (60 fps).
 
 Links
 -----
