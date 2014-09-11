@@ -14,7 +14,6 @@ Functionality
 TODO
 ----
 
-- Create an auxiliary class w/ common methods and structures.
 - Linux support.
 
 Links
