@@ -38,6 +38,8 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	// Validators
 	QDoubleValidator *doubleValidator = new QDoubleValidator(0.01,10.0,2);
 	doubleValidator->setNotation(QDoubleValidator::StandardNotation);
+	QDoubleValidator *doubleValidator2 = new QDoubleValidator(0.01,10000.0,2);
+	doubleValidator->setNotation(QDoubleValidator::StandardNotation);
 
 	QIntValidator *intValidator = new QIntValidator(0,N_MAX_LIGHTS);
 
@@ -56,10 +58,30 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	QLineEdit *cameraSpeedIn = new QLineEdit();
 	cameraSpeedIn->setValidator(doubleValidator);
 	cameraSpeedIn->setText("1.0");
-	
+
+	// Lights
+	QLabel *lightingLabel = new QLabel();
+	lightingLabel->setText("Lighting-> ");
+
+	// Light bounding box scale
+	QLabel *lightBBScaleLabel = new QLabel();
+	lightBBScaleLabel->setText("Bounding box scale: ");
+
+	QLineEdit *lighBBScaleIn = new QLineEdit();
+	lighBBScaleIn->setValidator(doubleValidator);
+	lighBBScaleIn->setText("1.0");
+
+	// Light intensity
+	QLabel *lightIntesityLabel = new QLabel();
+	lightIntesityLabel->setText("Intensity: ");
+
+	QLineEdit *lighIntensityIn = new QLineEdit();
+	lighIntensityIn->setValidator(doubleValidator2);
+	lighIntensityIn->setText("1.0");				///////////
+
 	// Number of lights
 	QLabel *nLightsLabel = new QLabel();
-	nLightsLabel->setText("N lights: ");
+	nLightsLabel->setText("N: ");
 
 	std::stringstream sstm;
 	sstm << INITIAL_LIGHTS;
@@ -94,6 +116,9 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	connect(nLightsIn,SIGNAL(textChanged(QString)),this,SLOT(modifyNLights(QString)));
 	connect(genLightsButton, SIGNAL(clicked()), this, SLOT(genLights()));
 	connect(this, SIGNAL(glGenLights(int)), glWidget, SLOT(genLightning(int)));
+	connect(lighBBScaleIn, SIGNAL(textChanged(QString)), glWidget, SLOT(modifyBoundingBoxScale(QString)));
+	connect(lighIntensityIn, SIGNAL(textChanged(QString)), glWidget, SLOT(modifyMaxIntensity(QString)));
+	connect(glWidget, SIGNAL(updateLightIntensityIn(QString)), lighIntensityIn, SLOT(setText(QString)));
 	
 	// Set layout content
     mainLayout->addWidget(glWidget);
@@ -102,6 +127,11 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	thirdLayout->addWidget(cameraSensitivityIn);
 	thirdLayout->addWidget(speedLabel);
 	thirdLayout->addWidget(cameraSpeedIn);
+	thirdLayout->addWidget(lightingLabel);
+	thirdLayout->addWidget(lightBBScaleLabel);
+	thirdLayout->addWidget(lighBBScaleIn);
+	thirdLayout->addWidget(lightIntesityLabel);
+	thirdLayout->addWidget(lighIntensityIn);
 	thirdLayout->addWidget(nLightsLabel);
 	thirdLayout->addWidget(nLightsIn);
 	thirdLayout->addWidget(genLightsButton);

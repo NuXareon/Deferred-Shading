@@ -2,8 +2,6 @@
 #include "Importer.hpp"
 #include "postprocess.h"
 
-//float mMaxX,mMaxY,mMaxZ,mMinX,mMinY,mMinZ;
-
 Mesh::MeshEntry::MeshEntry()
 {
     VB = INVALID_BUFFER;
@@ -39,6 +37,7 @@ void Mesh::MeshEntry::Init(const std::vector<Vertex> &Vertices, const std::vecto
 
 Mesh::Mesh()
 {
+	bb = BoundingBox(Vector3f(-FLT_MAX,-FLT_MAX,-FLT_MAX),Vector3f(FLT_MAX,FLT_MAX,FLT_MAX));
 }
 
 bool Mesh::LoadMesh(const std::string& Filename)
@@ -60,8 +59,6 @@ bool Mesh::InitFromScene(const aiScene *pScene, const std::string &Filename)
     // Resize the meshes and textures vectors
     m_Entries.resize(pScene->mNumMeshes);
     m_Textures.resize(pScene->mNumMaterials);
-	//mMaxX=mMaxY=mMaxZ=-10000;
-	//mMinX=mMinY=mMinZ=10000;
 
     // Initialitzation of all the meshes of the scene
     for (unsigned int i = 0; i < m_Entries.size(); ++i) {
@@ -84,11 +81,7 @@ void Mesh::InitMesh(unsigned int Index, const aiMesh *paiMesh)
 
 	aiVector3D Zeros = aiVector3D(0.0f,0.0f,0.0f);
 
-	//float pMaxX,pMaxY,pMaxZ,pMinX,pMinY,pMinZ;
-	//pMaxX=pMaxY=pMaxZ=-10000;
-	//pMinX=pMinY=pMinZ=10000;
-
-    // For each vertex, position, normal and texture coordinates are stored as a Vertex at the Vertices vector
+    // For each vertex: position, normal and texture coordinates are stored as a Vertex at the Vertices vector
     for (unsigned int i = 0; i < paiMesh->mNumVertices; ++i) {
         const aiVector3D* pPos      = &(paiMesh->mVertices[i]);
         const aiVector3D* pNormal   = &(paiMesh->mNormals[i]);
@@ -99,23 +92,16 @@ void Mesh::InitMesh(unsigned int Index, const aiMesh *paiMesh)
                  Vector3f(pNormal->x,pNormal->y,pNormal->z));
 
         Vertices.push_back(v);
-		/*
-		if (pPos->x > pMaxX) pMaxX = pPos->x;
-		if (pPos->y > pMaxY) pMaxY = pPos->y;
-		if (pPos->z > pMaxZ) pMaxZ = pPos->z;
-		if (pPos->x < pMinX) pMinX = pPos->x;
-		if (pPos->y < pMinY) pMinY = pPos->y;
-		if (pPos->z < pMinZ) pMinZ = pPos->z;
-		*/
+		
+		if (pPos->x > bb.max.x) bb.max.x = pPos->x;
+		if (pPos->y > bb.max.y) bb.max.y = pPos->y;
+		if (pPos->z > bb.max.z) bb.max.z = pPos->z;
+		if (pPos->x < bb.min.x) bb.min.x = pPos->x;
+		if (pPos->y < bb.min.y) bb.min.y = pPos->y;
+		if (pPos->z < bb.min.z) bb.min.z = pPos->z;
+		
     }
-	/*
-	if (mMaxX < pMaxX) mMaxX = pMaxX;
-	if (mMaxY < pMaxY) mMaxY = pMaxY;
-	if (mMaxZ < pMaxZ) mMaxZ = pMaxZ;
-	if (mMinX > pMinX) mMinX = pMinX;
-	if (mMinY > pMinY) mMinY = pMinY;
-	if (mMinZ > pMinZ) mMinZ = pMinZ;
-	*/
+
     // Indices for each face are stored at the Indices vector
     for (unsigned int i = 0; i < paiMesh->mNumFaces; ++i) {
         const aiFace& Face = paiMesh->mFaces[i];
@@ -202,4 +188,9 @@ void Mesh::Render(GLuint pLoc, GLuint tcLoc, GLuint nLoc, GLuint sLoc)
     glFuncs.glDisableVertexAttribArray(pLoc);
 	glFuncs.glDisableVertexAttribArray(tcLoc);
 	glFuncs.glDisableVertexAttribArray(nLoc);
+}
+
+BoundingBox Mesh::getBoundingBox()
+{
+	return bb;
 }

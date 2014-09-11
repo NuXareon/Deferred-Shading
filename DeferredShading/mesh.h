@@ -50,6 +50,22 @@ struct Vertex
     }
 };
 
+struct BoundingBox
+{
+	Vector3f max;
+	Vector3f min;
+	BoundingBox(){}
+	BoundingBox (Vector3f _max, Vector3f _min)
+	{
+		max = _max;
+		min = _min;
+	}
+	BoundingBox operator*(const float i) const
+	{
+		return BoundingBox(Vector3f(max.x*i,max.y*i,max.z*i), Vector3f(min.x*i,min.y*i,min.z*i));
+	}
+};
+
 // Mesh class, contains info and methods to load an render meshes
 class Mesh
 {
@@ -60,6 +76,7 @@ public:
 
     bool LoadMesh(const std::string& Filename);
     void Render(GLuint pLoc, GLuint tcLoc, GLuint nLoc, GLuint sLoc);
+	BoundingBox getBoundingBox();
 
 private:
     bool InitFromScene(const aiScene* pScene, const std::string& Filename);
@@ -81,4 +98,5 @@ private:
 
     std::vector<MeshEntry> m_Entries;
     std::vector<Texture*> m_Textures;
+	BoundingBox bb;
 };

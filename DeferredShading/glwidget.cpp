@@ -20,11 +20,15 @@ GLWidget::GLWidget(QWidget *parent) :
 	alpha=beta=0.0f;
 	cSensitivity = 0.1f;
 	cSpeed = 1.0f;
+	// Model
+	modelPath = "../DeferredShading/Models/sponza/sponza.obj";
 	// Lights
 	nLights = INITIAL_LIGHTS;
+	lightingBoundingBoxScale = 0.65f;
+	maxIntensity = 0.0f;
 	// Timers
-	inputTimerId = startTimer(1000/60);		// Camera refresh rate (60 FPS)
-	drawTimerId = startTimer(0);			// Render refresh rate, we want to measure eficiency so we need max render speed. V-SYNC MUST BE TURNED OFF.
+	inputTimerId = startTimer(1000/40);			// Camera refresh rate (40 FPS)
+	drawTimerId = startTimer(1000/60);			// Render refresh rate. V-SYNC MUST BE TURNED OFF.
 }
 
 GLWidget::~GLWidget()
@@ -34,8 +38,10 @@ GLWidget::~GLWidget()
 void GLWidget::loadModel(std::string path)
 {
 	modelPath = path;
+	maxIntensity = 0.0f;
 	mainMesh = new Mesh();
     mainMesh->LoadMesh(modelPath);
+	initializeLighting();
 }
 
 void GLWidget::initializeLightingGL()
@@ -181,26 +187,19 @@ void GLWidget::initializeLighting()
 {
 	// Initialize generator
 	std::default_random_engine generator((unsigned int)time(0));
+	BoundingBox bb = mainMesh->getBoundingBox()*lightingBoundingBoxScale;
 
-	// -----sponza settings-----
-	/*
-	std::uniform_real_distribution<float> distributionX(-17.0,17.0);
-	std::uniform_real_distribution<float> distributionY(-1.0,15.0);
-	std::uniform_real_distribution<float> distributionZ(-7.0,7.0);
+	if (maxIntensity == 0.0f) {
+		maxIntensity = sqrt((bb.max.x-bb.min.x)*(bb.max.x-bb.min.x)+(bb.max.y-bb.min.y)*(bb.max.x-bb.min.z)+(bb.max.x-bb.min.z)*(bb.max.x-bb.min.z)+(bb.max.x-bb.min.z));
+		emit updateLightIntensityIn(QString::number(maxIntensity));
+	}
+	std::uniform_real_distribution<float> distributionX(bb.min.x,bb.max.x);
+	std::uniform_real_distribution<float> distributionY(bb.min.y,bb.max.y);
+	std::uniform_real_distribution<float> distributionZ(bb.min.z,bb.max.z);
 	std::uniform_real_distribution<float> distributionC(0.0,1.0);
-	std::uniform_real_distribution<float> distributionI(0.0,2.0);
-	float pAttenuation[] = {1.0f, 0.2f, 0.5f};
-	*/
-	// -----sponza-crytek settings-----
-	
-	// Initialize distributions (TODO: pre-calculate max/min for the model)
-	std::uniform_real_distribution<float> distributionX(-1400.0,1400.0);
-	std::uniform_real_distribution<float> distributionY(-125.0,1200.0);
-	std::uniform_real_distribution<float> distributionZ(-700.0,700.0);
-	std::uniform_real_distribution<float> distributionC(0.0,1.0);
-	std::uniform_real_distribution<float> distributionI(0.0,1000.0);
-	float pAttenuation[] = {2.5f, 5.0f, 0.015f};
-	
+	std::uniform_real_distribution<float> distributionI(maxIntensity/2,maxIntensity);
+	float pAttenuation[] = {1.0f, 60.0f, 0.0f};
+
 	// Populate pointLightsArr with nLight
 	for (unsigned int i = 0; i < nLights; i++){
 		float pColor[] = {distributionC(generator), distributionC(generator), distributionC(generator)};
@@ -223,14 +222,13 @@ void GLWidget::initializeGL()
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+	loadModel(modelPath);
+
     //glShadeModel(GL_SMOOTH);
 	//initializeLightingGL();
 	initializeShaders();
 	initLocations();
-	initializeLighting();
 	
-	// Load mesh from file
-	loadModel("../DeferredShading/Models/sponza/sponza.obj");
 	frames = 0;
 	t = new QTime();
 	t->start();
@@ -359,6 +357,16 @@ void GLWidget::modifyCameraSensitivity(QString s)
 void GLWidget::modifyCameraSpeed(QString s)
 {
 	cSpeed = s.toFloat();
+}
+
+void GLWidget::modifyMaxIntensity(QString s)
+{
+	maxIntensity = s.toFloat();
+}
+
+void GLWidget::modifyBoundingBoxScale(QString s)
+{
+	lightingBoundingBoxScale = s.toFloat();
 }
 
 void GLWidget::timerEvent(QTimerEvent* e)

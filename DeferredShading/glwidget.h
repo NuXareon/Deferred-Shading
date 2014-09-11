@@ -73,12 +73,16 @@ public slots:
 	// Camera
 	void modifyCameraSensitivity(QString s);
 	void modifyCameraSpeed(QString s);
+	// Lighting
+	void modifyMaxIntensity(QString s);
+	void modifyBoundingBoxScale(QString s);
 	// Misc.
 	void loadModel(std::string path);					// Loads a model located on path.
 	void genLightning(int n);							// Modifies nLights and regenerates lightning, see initializeLightning().
 
 signals:
 	void updateFPSSignal(int fps);
+	void updateLightIntensityIn(QString s);
 
 protected:
     void initializeGL();
@@ -126,6 +130,8 @@ private:
 	directionalLight dLight;							// Global directional light (will be removed at some point probably)
 	pointLight pointLightsArr[N_MAX_LIGHTS];			// Array with the maximum number of lights
 	unsigned int nLights;								// Actual number of lights (nLights < N_MAX_LIGHTS)
+	float lightingBoundingBoxScale;
+	float maxIntensity;
 	// Functions
 	bool readFile(const char* path, std::string& out);	// Reads a text file on path and returns its contents on out.
 	void initializeLightingGL();						// Initializes lightning on openGL. (not used)(should be remove)
