@@ -1,9 +1,4 @@
 #include "glwidget.h"
-#include <gl\GLU.h>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <random>
 
 const char* VSPath = "shader.vs";
 const char* FSPath = "shader.fs";
@@ -27,7 +22,7 @@ GLWidget::GLWidget(QWidget *parent) :
 	lightingBoundingBoxScale = 0.65f;
 	maxIntensity = 0.0f;
 	// Timers
-	inputTimerId = startTimer(1000/40);			// Camera refresh rate (40 FPS)
+	inputTimerId = startTimer(1000/60);			// Camera refresh rate (60 FPS)
 	drawTimerId = startTimer(1000/60);			// Render refresh rate. V-SYNC MUST BE TURNED OFF.
 }
 
@@ -74,23 +69,6 @@ void GLWidget::genLightning(int n)
 	initializeLighting();
 }
 
-bool GLWidget::readFile(const char* path, std::string& out)
-{
-	std::string line;
-	std::ifstream inFile(path);
-
-	if (inFile.is_open()) {
-		while (getline(inFile,line)) {
-			out.append(line);
-			out.append("\n");
-		}
-		inFile.close();
-	} else {
-		return false;
-	}
-	return true;
-}
-
 void GLWidget::initializeShaders()
 {
 	QGLFunctions glFuncs(QGLContext::currentContext());
@@ -99,7 +77,7 @@ void GLWidget::initializeShaders()
 	// Vertex shader load
 	std::string vertexShader;
 
-	if (!readFile(VSPath, vertexShader)) exit(1);
+	if (!utils::readFile(VSPath, vertexShader)) exit(1);
 	
 	GLuint vShaderObj = glFuncs.glCreateShader(GL_VERTEX_SHADER);
 
@@ -122,7 +100,7 @@ void GLWidget::initializeShaders()
 	// Fragment shader load
 	std::string fragmentShader;
 
-	if (!readFile(FSPath, fragmentShader)) exit(1);
+	if (!utils::readFile(FSPath, fragmentShader)) exit(1);
 	
 	GLuint fShaderObj = glFuncs.glCreateShader(GL_FRAGMENT_SHADER);
 
@@ -139,12 +117,20 @@ void GLWidget::initializeShaders()
 
 	glFuncs.glAttachShader(shaderProgram,fShaderObj);
 	glFuncs.glLinkProgram(shaderProgram);
-	//glFuncs.glGetProgramiv(shaderProgram,GL_LINK_STATUS,&success);
+	glFuncs.glGetProgramiv(shaderProgram,GL_LINK_STATUS,&success);
+	if (!success) {
+		char InfoLog[1024];
+		glFuncs.glGetShaderInfoLog(shaderProgram, sizeof(InfoLog), NULL, InfoLog);
+		fprintf(stderr, "Error linking shader program: '%s'\n", InfoLog);
+	}
 	glFuncs.glValidateProgram(shaderProgram);
-	//glFuncs.glGetProgramiv(shaderProgram,GL_VALIDATE_STATUS,&success);
+	glFuncs.glGetProgramiv(shaderProgram,GL_VALIDATE_STATUS,&success);
+	if (!success) {
+		char InfoLog[1024];
+		glFuncs.glGetShaderInfoLog(shaderProgram, sizeof(InfoLog), NULL, InfoLog);
+		fprintf(stderr, "Error linking shader program: '%s'\n", InfoLog);
+	}
 	glFuncs.glUseProgram(shaderProgram);
-
-	// TODO: check link and validation errors.
 }
 
 void GLWidget::initLocations()
@@ -220,6 +206,12 @@ void GLWidget::initializeGL()
 {
     qglClearColor(QColor::fromRgb(0,0,0));
 
+	#ifdef _WIN32
+	utils::enableVSyncWin(0);
+	#elif __linux__
+	//utils::enableVSyncLinux(0);
+	#endif
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 	loadModel(modelPath);
@@ -233,6 +225,7 @@ void GLWidget::initializeGL()
 	t = new QTime();
 	t->start();
 }
+
 
 void GLWidget::resizeGL(int width, int height)
 {
@@ -395,5 +388,5 @@ void GLWidget::timerEvent(QTimerEvent* e)
 			zPos += cSpeed*cos(alphaRad);
 		}
 	}
-	else updateGL();
+	else if (e && e->timerId() == drawTimerId) updateGL();
 }

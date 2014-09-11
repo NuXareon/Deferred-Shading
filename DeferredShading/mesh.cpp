@@ -117,23 +117,10 @@ void Mesh::InitMesh(unsigned int Index, const aiMesh *paiMesh)
     m_Entries[Index].Init(Vertices,Indices);
 }
 
-void getDir(const std::string path, std::string* dir){
-	 std::string::size_type SlashIndex = path.find_last_of("/");
-	 if (SlashIndex == std::string::npos) {
-        *(dir) = ".";
-    }
-    else if (SlashIndex == 0) {
-        *(dir) = "/";
-    }
-    else {
-        *(dir) = path.substr(0, SlashIndex);
-    }
-}
-
 bool Mesh::InitMaterials(const aiScene* pScene, const std::string& Filename){
    
     std::string Dir;
-	getDir(Filename,&Dir);
+	utils::getDir(Filename,&Dir);
 
     bool Ret = true;
 
