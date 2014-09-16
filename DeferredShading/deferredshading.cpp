@@ -30,10 +30,24 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
     QVBoxLayout *secondLayout = new QVBoxLayout;
 	QHBoxLayout *thirdLayout = new QHBoxLayout;
 
-	// Menu
-	QAction *loadModelAct = new QAction(tr("&Load Model"), this);
+	// Menus
+	// File
 	QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
+	QAction *loadModelAct = new QAction(tr("&Load Model"), this);
 	fileMenu->addAction(loadModelAct);
+	// Render
+	QMenu *renderMenu = menuBar()->addMenu(tr("&Render"));
+	QAction *forwardRenderAct = new QAction(tr("&Forward"), this);
+	QAction *deferredRenderAct = new QAction(tr("&Deferred"), this);
+	QAction *positionRenderAct = new QAction(tr("&Position"), this);
+	QAction *diffuseRenderAct = new QAction(tr("&Diffuse"), this);
+	QAction *normalRenderAct = new QAction(tr("&Normal"), this);
+	renderMenu->addAction(forwardRenderAct);
+	renderMenu->addAction(deferredRenderAct);
+	renderMenu->addSeparator();
+	renderMenu->addAction(positionRenderAct);
+	renderMenu->addAction(diffuseRenderAct);
+	renderMenu->addAction(normalRenderAct);
 
 	// Validators
 	QDoubleValidator *doubleValidator = new QDoubleValidator(0.01,10.0,2);
@@ -77,7 +91,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 
 	QLineEdit *lighIntensityIn = new QLineEdit();
 	lighIntensityIn->setValidator(doubleValidator2);
-	lighIntensityIn->setText("1.0");				///////////
+	lighIntensityIn->setText("1.0");
 
 	// Number of lights
 	QLabel *nLightsLabel = new QLabel();
@@ -108,6 +122,11 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	// Connect signals-slots
 	connect(loadModelAct,SIGNAL(triggered()), this, SLOT(loadModelDia()));
 	connect(this,SIGNAL(modelPathChange(std::string)), glWidget, SLOT(loadModel(std::string)));
+	connect(forwardRenderAct,SIGNAL(triggered()), glWidget, SLOT(setForwardRenderMode()));
+	connect(deferredRenderAct,SIGNAL(triggered()), glWidget, SLOT(setDeferredRenderMode()));
+	connect(positionRenderAct,SIGNAL(triggered()), glWidget, SLOT(setPositionRenderMode()));
+	connect(diffuseRenderAct,SIGNAL(triggered()), glWidget, SLOT(setDiffuseRenderMode()));
+	connect(normalRenderAct,SIGNAL(triggered()), glWidget, SLOT(setNormalRenderMode()));
 	connect(this,SIGNAL(keyPressed(int)), glWidget, SLOT(addKey(int)));
 	connect(this,SIGNAL(keyReleased(int)), glWidget, SLOT(removeKey(int)));
 	connect(cameraSensitivityIn,SIGNAL(textChanged(QString)),glWidget,SLOT(modifyCameraSensitivity(QString)));

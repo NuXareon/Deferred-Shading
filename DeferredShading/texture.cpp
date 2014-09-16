@@ -25,7 +25,6 @@ bool Texture::Load(){
 }
 
 void Texture::Bind(GLenum TextureUnit){
-	QGLFunctions glFuncs(QGLContext::currentContext());
-	glFuncs.glActiveTexture(TextureUnit);
+	glActiveTexture(TextureUnit);
 	glBindTexture(textureTarget, textureObj);
 }

@@ -1,10 +1,13 @@
 #pragma once
-#include <QtOpenGL>
-#include <gl\GLU.h>
+#include <glew.h>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <random>
+#include <qset.h>
+#include <qevent.h>
+#include <QGLWidget>
+#include <QTime>
 #include "glext.h"
 #ifdef _WIN32
 #include "wglext.h"
@@ -15,6 +18,9 @@
 #define INVALID_BUFFER -1
 #define N_MAX_LIGHTS	100
 #define	INITIAL_LIGHTS	20
+#define	GBUFFER_DEFAULT	0
+#define GBUFFER_READ	1
+#define GBUFFER_DRAW	2
 
 // Vector structs
 struct Vector3f
@@ -127,6 +133,8 @@ struct pointLight{
 		attenuation.constant = a[0]; attenuation.linear = a[1]; attenuation.exp = a[2];
 	}
 };
+
+enum renderModeType {RENDER_POSITION, RENDER_NORMAL, RENDER_DIFFUSE, RENDER_ALL, RENDER_FORWARD, RENDER_DEFERRED};
 
 class utils
 {

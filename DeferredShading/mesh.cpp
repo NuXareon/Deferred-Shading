@@ -13,9 +13,8 @@ Mesh::MeshEntry::MeshEntry()
 Mesh::MeshEntry::~MeshEntry()
 {
     // Clean buffers
-    QGLFunctions glFuncs(QGLContext::currentContext());
-    if (VB != INVALID_BUFFER) glFuncs.glDeleteBuffers(1,&VB);
-    if (IB != INVALID_BUFFER) glFuncs.glDeleteBuffers(1,&IB);
+    if (VB != INVALID_BUFFER) glDeleteBuffers(1,&VB);
+    if (IB != INVALID_BUFFER) glDeleteBuffers(1,&IB);
 }
 
 void Mesh::MeshEntry::Init(const std::vector<Vertex> &Vertices, const std::vector<unsigned int>& Indices)
@@ -23,15 +22,14 @@ void Mesh::MeshEntry::Init(const std::vector<Vertex> &Vertices, const std::vecto
     NumIndices = Indices.size();
 
     // Populate the array buffer BV
-    QGLFunctions glFuncs(QGLContext::currentContext());
-    glFuncs.glGenBuffers(1,&VB);
-    glFuncs.glBindBuffer(GL_ARRAY_BUFFER,VB);
-    glFuncs.glBufferData(GL_ARRAY_BUFFER,Vertices.size()*sizeof(Vertex),&Vertices[0],GL_STATIC_DRAW);
+    glGenBuffers(1,&VB);
+    glBindBuffer(GL_ARRAY_BUFFER,VB);
+    glBufferData(GL_ARRAY_BUFFER,Vertices.size()*sizeof(Vertex),&Vertices[0],GL_STATIC_DRAW);
 
     // Populate the index buffer IB
-    glFuncs.glGenBuffers(1,&IB);
-    glFuncs.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,IB);
-    glFuncs.glBufferData(GL_ELEMENT_ARRAY_BUFFER,NumIndices*sizeof(unsigned int),&Indices[0],GL_STATIC_DRAW);
+    glGenBuffers(1,&IB);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,IB);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,NumIndices*sizeof(unsigned int),&Indices[0],GL_STATIC_DRAW);
 
 }
 
@@ -146,20 +144,18 @@ bool Mesh::InitMaterials(const aiScene* pScene, const std::string& Filename){
 
 void Mesh::Render(GLuint pLoc, GLuint tcLoc, GLuint nLoc, GLuint sLoc)
 {
-	QGLFunctions glFuncs(QGLContext::currentContext());
-
-    glFuncs.glEnableVertexAttribArray(pLoc);
-    glFuncs.glEnableVertexAttribArray(tcLoc);
-    glFuncs.glEnableVertexAttribArray(nLoc);
+    glEnableVertexAttribArray(pLoc);
+    glEnableVertexAttribArray(tcLoc);
+    glEnableVertexAttribArray(nLoc);
 
     for (unsigned int i = 0; i < m_Entries.size(); ++i)
     {
-        glFuncs.glBindBuffer(GL_ARRAY_BUFFER,m_Entries[i].VB);
-        glFuncs.glVertexAttribPointer(pLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-		glFuncs.glVertexAttribPointer(tcLoc, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
-		glFuncs.glVertexAttribPointer(nLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
+        glBindBuffer(GL_ARRAY_BUFFER,m_Entries[i].VB);
+        glVertexAttribPointer(pLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+		glVertexAttribPointer(tcLoc, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
+		glVertexAttribPointer(nLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
 
-        glFuncs.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_Entries[i].IB);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_Entries[i].IB);
 
 		const unsigned int materialIndex = m_Entries[i].MaterialIndex;
 
@@ -167,14 +163,14 @@ void Mesh::Render(GLuint pLoc, GLuint tcLoc, GLuint nLoc, GLuint sLoc)
 			m_Textures[materialIndex]->Bind(GL_TEXTURE0);
 		}
 
-		glFuncs.glUniform1i(sLoc, 0);
+		glUniform1i(sLoc, 0);
 
         glDrawElements(GL_TRIANGLES, m_Entries[i].NumIndices, GL_UNSIGNED_INT,0);
     }
 
-    glFuncs.glDisableVertexAttribArray(pLoc);
-	glFuncs.glDisableVertexAttribArray(tcLoc);
-	glFuncs.glDisableVertexAttribArray(nLoc);
+    glDisableVertexAttribArray(pLoc);
+	glDisableVertexAttribArray(tcLoc);
+	glDisableVertexAttribArray(nLoc);
 }
 
 BoundingBox Mesh::getBoundingBox()

@@ -1,8 +1,6 @@
-#include <vector>
-
+#include "utils.h"
 #include "scene.h"
 #include "texture.h"
-#include "utils.h"
 
 // Mesh class, contains info and methods to load an render meshes
 class Mesh

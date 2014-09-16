@@ -71,6 +71,9 @@
     <ClCompile Include="utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gbuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="deferredshading.h">
@@ -99,12 +102,18 @@
     <ClInclude Include="utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="gbuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shader.vs">
+    <None Include="forward_shader.fs">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="shader.fs">
+    <None Include="forward_shader.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="deferred_shader.fs">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

@@ -1,4 +1,5 @@
-#include <QtOpenGL>
+//#include <QtOpenGL>
+#include "utils.h"
 #include <Magick++.h>
 
 class Texture

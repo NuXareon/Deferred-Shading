@@ -1,7 +1,9 @@
 #include "glwidget.h"
 
-const char* VSPath = "shader.vs";
-const char* FSPath = "shader.fs";
+const char* VSPath = "forward_shader.vs";
+const char* FSPath = "forward_shader.fs";
+const char* VSPathDeferred = "forward_shader.vs";
+const char* FSPathDeferred = "deferred_shader.fs";
 
 GLWidget::GLWidget(QWidget *parent) :
     QGLWidget()
@@ -24,6 +26,8 @@ GLWidget::GLWidget(QWidget *parent) :
 	// Timers
 	inputTimerId = startTimer(1000/60);			// Camera refresh rate (60 FPS)
 	drawTimerId = startTimer(1000/60);			// Render refresh rate. V-SYNC MUST BE TURNED OFF.
+	// Render
+	renderMode = RENDER_FORWARD;
 }
 
 GLWidget::~GLWidget()
@@ -69,83 +73,153 @@ void GLWidget::genLightning(int n)
 	initializeLighting();
 }
 
+void GLWidget::setForwardRenderMode()	{renderMode = RENDER_FORWARD;}
+void GLWidget::setPositionRenderMode()	{renderMode = RENDER_POSITION;}
+void GLWidget::setNormalRenderMode()	{renderMode = RENDER_NORMAL;}
+void GLWidget::setDiffuseRenderMode()	{renderMode = RENDER_DIFFUSE;}
+void GLWidget::setDeferredRenderMode()	{renderMode = RENDER_ALL;}
+
 void GLWidget::initializeShaders()
 {
-	QGLFunctions glFuncs(QGLContext::currentContext());
-	shaderProgram = glFuncs.glCreateProgram();
+	shaderProgram = glCreateProgram();
 
 	// Vertex shader load
 	std::string vertexShader;
 
 	if (!utils::readFile(VSPath, vertexShader)) exit(1);
 	
-	GLuint vShaderObj = glFuncs.glCreateShader(GL_VERTEX_SHADER);
+	GLuint vShaderObj = glCreateShader(GL_VERTEX_SHADER);
 
 	const char* shaderFiles[1];
 	shaderFiles[0] = vertexShader.c_str();
 	GLint lengths[1];
 	lengths[0] = vertexShader.size();
-	glFuncs.glShaderSource(vShaderObj, 1, shaderFiles, lengths);
-	glFuncs.glCompileShader(vShaderObj);
+	glShaderSource(vShaderObj, 1, shaderFiles, lengths);
+	glCompileShader(vShaderObj);
 	GLint success;
-	glFuncs.glGetShaderiv(vShaderObj, GL_COMPILE_STATUS, &success);
+	glGetShaderiv(vShaderObj, GL_COMPILE_STATUS, &success);
 	if (!success) {
 		char InfoLog[1024];
-		glFuncs.glGetShaderInfoLog(vShaderObj, sizeof(InfoLog), NULL, InfoLog);
+		glGetShaderInfoLog(vShaderObj, sizeof(InfoLog), NULL, InfoLog);
 		fprintf(stderr, "Error compiling shader: '%s'\n", InfoLog);
 	}
 
-	glFuncs.glAttachShader(shaderProgram,vShaderObj);
+	glAttachShader(shaderProgram,vShaderObj);
 
 	// Fragment shader load
 	std::string fragmentShader;
 
 	if (!utils::readFile(FSPath, fragmentShader)) exit(1);
 	
-	GLuint fShaderObj = glFuncs.glCreateShader(GL_FRAGMENT_SHADER);
+	GLuint fShaderObj = glCreateShader(GL_FRAGMENT_SHADER);
 
 	shaderFiles[0] = fragmentShader.c_str();
 	lengths[0] = fragmentShader.size();
-	glFuncs.glShaderSource(fShaderObj, 1, shaderFiles, lengths);
-	glFuncs.glCompileShader(fShaderObj);
-	glFuncs.glGetShaderiv(fShaderObj, GL_COMPILE_STATUS, &success);
+	glShaderSource(fShaderObj, 1, shaderFiles, lengths);
+	glCompileShader(fShaderObj);
+	glGetShaderiv(fShaderObj, GL_COMPILE_STATUS, &success);
 	if (!success) {
 		char InfoLog[1024];
-		glFuncs.glGetShaderInfoLog(fShaderObj, sizeof(InfoLog), NULL, InfoLog);
+		glGetShaderInfoLog(fShaderObj, sizeof(InfoLog), NULL, InfoLog);
 		fprintf(stderr, "Error compiling shader: '%s'\n", InfoLog);
 	}
 
-	glFuncs.glAttachShader(shaderProgram,fShaderObj);
-	glFuncs.glLinkProgram(shaderProgram);
-	glFuncs.glGetProgramiv(shaderProgram,GL_LINK_STATUS,&success);
+	glAttachShader(shaderProgram,fShaderObj);
+	glLinkProgram(shaderProgram);
+	glGetProgramiv(shaderProgram,GL_LINK_STATUS,&success);
 	if (!success) {
 		char InfoLog[1024];
-		glFuncs.glGetShaderInfoLog(shaderProgram, sizeof(InfoLog), NULL, InfoLog);
+		glGetShaderInfoLog(shaderProgram, sizeof(InfoLog), NULL, InfoLog);
 		fprintf(stderr, "Error linking shader program: '%s'\n", InfoLog);
 	}
-	glFuncs.glValidateProgram(shaderProgram);
-	glFuncs.glGetProgramiv(shaderProgram,GL_VALIDATE_STATUS,&success);
+	glValidateProgram(shaderProgram);
+	glGetProgramiv(shaderProgram,GL_VALIDATE_STATUS,&success);
 	if (!success) {
 		char InfoLog[1024];
-		glFuncs.glGetShaderInfoLog(shaderProgram, sizeof(InfoLog), NULL, InfoLog);
+		glGetShaderInfoLog(shaderProgram, sizeof(InfoLog), NULL, InfoLog);
 		fprintf(stderr, "Error linking shader program: '%s'\n", InfoLog);
 	}
-	glFuncs.glUseProgram(shaderProgram);
+}
+
+void GLWidget::initializeShadersDeferred()
+{
+	shaderProgramDeferred = glCreateProgram();
+
+	// Vertex shader load
+	std::string vertexShader;
+
+	if (!utils::readFile(VSPathDeferred, vertexShader)) exit(1);
+	
+	GLuint vShaderObj = glCreateShader(GL_VERTEX_SHADER);
+
+	const char* shaderFiles[1];
+	shaderFiles[0] = vertexShader.c_str();
+	GLint lengths[1];
+	lengths[0] = vertexShader.size();
+	glShaderSource(vShaderObj, 1, shaderFiles, lengths);
+	glCompileShader(vShaderObj);
+	GLint success;
+	glGetShaderiv(vShaderObj, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		char InfoLog[1024];
+		glGetShaderInfoLog(vShaderObj, sizeof(InfoLog), NULL, InfoLog);
+		fprintf(stderr, "Error compiling shader: '%s'\n", InfoLog);
+	}
+
+	glAttachShader(shaderProgramDeferred,vShaderObj);
+
+	// Fragment shader load
+	std::string fragmentShader;
+
+	if (!utils::readFile(FSPathDeferred, fragmentShader)) exit(1);
+	
+	GLuint fShaderObj = glCreateShader(GL_FRAGMENT_SHADER);
+
+	shaderFiles[0] = fragmentShader.c_str();
+	lengths[0] = fragmentShader.size();
+	glShaderSource(fShaderObj, 1, shaderFiles, lengths);
+	glCompileShader(fShaderObj);
+	glGetShaderiv(fShaderObj, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		char InfoLog[1024];
+		glGetShaderInfoLog(fShaderObj, sizeof(InfoLog), NULL, InfoLog);
+		fprintf(stderr, "Error compiling shader: '%s'\n", InfoLog);
+	}
+
+	glAttachShader(shaderProgramDeferred,fShaderObj);
+	glLinkProgram(shaderProgramDeferred);
+	glGetProgramiv(shaderProgramDeferred,GL_LINK_STATUS,&success);
+	if (!success) {
+		char InfoLog[1024];
+		glGetShaderInfoLog(shaderProgramDeferred, sizeof(InfoLog), NULL, InfoLog);
+		fprintf(stderr, "Error linking shader program: '%s'\n", InfoLog);
+	}
+	glValidateProgram(shaderProgramDeferred);
+	glGetProgramiv(shaderProgramDeferred,GL_VALIDATE_STATUS,&success);
+	if (!success) {
+		char InfoLog[1024];
+		glGetShaderInfoLog(shaderProgramDeferred, sizeof(InfoLog), NULL, InfoLog);
+		fprintf(stderr, "Error linking shader program: '%s'\n", InfoLog);
+	}
 }
 
 void GLWidget::initLocations()
 {
-	QGLFunctions glFuncs(QGLContext::currentContext());
-
-    positionLocation = glFuncs.glGetAttribLocation(shaderProgram,"position");
-	texCoordLocation = glFuncs.glGetAttribLocation(shaderProgram,"texCoord");
-	normLocation = glFuncs.glGetAttribLocation(shaderProgram,"norm");
-	samplerLocation = glFuncs.glGetUniformLocation(shaderProgram,"sampler");
-	ambientColorLocation = glFuncs.glGetUniformLocation(shaderProgram,"aLight.color");
-	ambientIntensityLocation = glFuncs.glGetUniformLocation(shaderProgram,"aLight.intensity");
-	directionalColorLocation = glFuncs.glGetUniformLocation(shaderProgram,"dLight.color");
-	directionalIntensityLocation = glFuncs.glGetUniformLocation(shaderProgram,"dLight.intensity");
-	directionalDirectionLocation = glFuncs.glGetUniformLocation(shaderProgram,"dLight.direction");
+    positionLocation = glGetAttribLocation(shaderProgram,"position");
+	texCoordLocation = glGetAttribLocation(shaderProgram,"texCoord");
+	normLocation = glGetAttribLocation(shaderProgram,"norm");
+	samplerLocation = glGetUniformLocation(shaderProgram,"sampler");
+	ambientColorLocation = glGetUniformLocation(shaderProgram,"aLight.color");
+	ambientIntensityLocation = glGetUniformLocation(shaderProgram,"aLight.intensity");
+	directionalColorLocation = glGetUniformLocation(shaderProgram,"dLight.color");
+	directionalIntensityLocation = glGetUniformLocation(shaderProgram,"dLight.intensity");
+	directionalDirectionLocation = glGetUniformLocation(shaderProgram,"dLight.direction");
+	positionDeferredLocation = glGetAttribLocation(shaderProgramDeferred,"position");
+	texCoordDeferredLocation = glGetAttribLocation(shaderProgramDeferred,"texCoord");
+	normDeferredLocation = glGetAttribLocation(shaderProgramDeferred,"norm");
+	samplerDeferredLocation = glGetUniformLocation(shaderProgramDeferred,"sampler");
+	minPDeferredLocation = glGetUniformLocation(shaderProgramDeferred,"minP");
+	maxPDeferredLocation = glGetUniformLocation(shaderProgramDeferred,"maxP");
 	std::stringstream sstm;
 	std::string uniformName;
 	std::string pl_str = "pointLights[";
@@ -158,15 +232,15 @@ void GLWidget::initLocations()
 		for (unsigned int j = 0; j < 4; j++) {
 			sstm << pl_str << i << str_arr[j];
 			uniformName = sstm.str();
-			if (j == 0) pointLightLocations[i].color = glFuncs.glGetUniformLocation(shaderProgram,uniformName.c_str());
-			else if (j == 1) pointLightLocations[i].intensity = glFuncs.glGetUniformLocation(shaderProgram,uniformName.c_str());
-			else if (j == 2) pointLightLocations[i].position = glFuncs.glGetUniformLocation(shaderProgram,uniformName.c_str());
-			else if (j == 3) pointLightLocations[i].attenuation = glFuncs.glGetUniformLocation(shaderProgram,uniformName.c_str());
+			if (j == 0) pointLightLocations[i].color = glGetUniformLocation(shaderProgram,uniformName.c_str());
+			else if (j == 1) pointLightLocations[i].intensity = glGetUniformLocation(shaderProgram,uniformName.c_str());
+			else if (j == 2) pointLightLocations[i].position = glGetUniformLocation(shaderProgram,uniformName.c_str());
+			else if (j == 3) pointLightLocations[i].attenuation = glGetUniformLocation(shaderProgram,uniformName.c_str());
 			sstm.str(std::string());
 			sstm.clear();
 		}
 	}
-	nLightsLocation = glFuncs.glGetUniformLocation(shaderProgram,"nLights");
+	nLightsLocation = glGetUniformLocation(shaderProgram,"nLights");
 }
 
 void GLWidget::initializeLighting()
@@ -198,13 +272,17 @@ void GLWidget::initializeLighting()
 	float wColor[] = {1.0f,1.0f,1.0f};
 	float dDirection[] = {-0.577f,-0.577f,-0.577f};
 	
-	aLight = ambientLight(wColor, 0.1f);
+	aLight = ambientLight(wColor, 0.0f);
 	dLight = directionalLight(wColor, 0.0f, dDirection); 
 }
 
 void GLWidget::initializeGL()
 {
+	glewInit();
+
     qglClearColor(QColor::fromRgb(0,0,0));
+	glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 
 	#ifdef _WIN32
 	utils::enableVSyncWin(0);
@@ -212,13 +290,14 @@ void GLWidget::initializeGL()
 	//utils::enableVSyncLinux(0);
 	#endif
 
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
+	gBufferDS = new gbuffer;
+
 	loadModel(modelPath);
 
     //glShadeModel(GL_SMOOTH);
 	//initializeLightingGL();
 	initializeShaders();
+	initializeShadersDeferred();
 	initLocations();
 	
 	frames = 0;
@@ -229,37 +308,46 @@ void GLWidget::initializeGL()
 
 void GLWidget::resizeGL(int width, int height)
 {
-    int side = qMin(width, height);
     glViewport(0, 0, width, height);
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluPerspective(60,width/height,1.0,10000.0);
     glMatrixMode(GL_MODELVIEW);
+
+	gBufferDS->init(width, height);
 }
 
 void GLWidget::setLightUniforms()
 {
-	QGLFunctions glFuncs(QGLContext::currentContext());
-
 	// Ambient light parameters
-	glFuncs.glUniform3f(ambientColorLocation, aLight.color.r, aLight.color.g, aLight.color.b);
-	glFuncs.glUniform1f(ambientIntensityLocation,aLight.intensity);
+	glUniform3f(ambientColorLocation, aLight.color.r, aLight.color.g, aLight.color.b);
+	glUniform1f(ambientIntensityLocation,aLight.intensity);
 
 	// Directional light parameters
-	glFuncs.glUniform3f(directionalColorLocation, dLight.color.r, dLight.color.g, dLight.color.b);
-	glFuncs.glUniform1f(directionalIntensityLocation,dLight.intensity);
-	glFuncs.glUniform3f(directionalDirectionLocation,dLight.direction.x,dLight.direction.y,dLight.direction.z); // must be normilized
+	glUniform3f(directionalColorLocation, dLight.color.r, dLight.color.g, dLight.color.b);
+	glUniform1f(directionalIntensityLocation,dLight.intensity);
+	glUniform3f(directionalDirectionLocation,dLight.direction.x,dLight.direction.y,dLight.direction.z); // must be normilized
 
 	// Point lights parameters
 	for (unsigned int i = 0; i < nLights; ++i) {
-		glFuncs.glUniform3f(pointLightLocations[i].color, pointLightsArr[i].color.r, pointLightsArr[i].color.g, pointLightsArr[i].color.b);
-		glFuncs.glUniform1f(pointLightLocations[i].intensity, pointLightsArr[i].intensity);
-		glFuncs.glUniform3f(pointLightLocations[i].position, pointLightsArr[i].position.x, pointLightsArr[i].position.y, pointLightsArr[i].position.z);
-		glFuncs.glUniform3f(pointLightLocations[i].attenuation, pointLightsArr[i].attenuation.constant, pointLightsArr[i].attenuation.linear, pointLightsArr[i].attenuation.exp);
+		glUniform3f(pointLightLocations[i].color, pointLightsArr[i].color.r, pointLightsArr[i].color.g, pointLightsArr[i].color.b);
+		glUniform1f(pointLightLocations[i].intensity, pointLightsArr[i].intensity);
+		glUniform3f(pointLightLocations[i].position, pointLightsArr[i].position.x, pointLightsArr[i].position.y, pointLightsArr[i].position.z);
+		glUniform3f(pointLightLocations[i].attenuation, pointLightsArr[i].attenuation.constant, pointLightsArr[i].attenuation.linear, pointLightsArr[i].attenuation.exp);
 	}
-	glFuncs.glUniform1i(nLightsLocation, nLights);
+	glUniform1i(nLightsLocation, nLights);
 
+}
+
+void renderAll(int const width, int const height)
+{
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	glBlitFramebuffer(0, 0, width, height, 0, height/2, width/2, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+	glReadBuffer(GL_COLOR_ATTACHMENT1);
+	glBlitFramebuffer(0, 0, width, height, width/2, height/2, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+	glReadBuffer(GL_COLOR_ATTACHMENT2);
+	glBlitFramebuffer(0, 0, width, height, 0, 0, width/2, height/2, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 }
 
 void GLWidget::paintGL()
@@ -267,7 +355,6 @@ void GLWidget::paintGL()
 	const float PI = 3.1415927f;
 	float alphaRad = PI*alpha/180;
 	float betaRad = PI*beta/180;
-	QGLFunctions glFuncs(QGLContext::currentContext());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
 	gluLookAt(	xPos, yPos, zPos,
@@ -292,11 +379,34 @@ void GLWidget::paintGL()
 		//glVertex3f(100.0f,100.0f,100.0f);
 	glEnd();
 	*/
-	// Draw geometry
-	glFuncs.glUseProgram(shaderProgram);
-	setLightUniforms();
-    mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
-	
+	if (renderMode == RENDER_FORWARD){
+		// Draw geometry
+		glUseProgram(shaderProgram);
+		setLightUniforms();
+		mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
+	} 
+	else if (renderMode == RENDER_DEFERRED){
+		// Draw geometry (deferred)
+	}
+	else if (renderMode >= 0 && renderMode < RENDER_FORWARD) {
+		// Draw only one component
+		glUseProgram(shaderProgramDeferred);
+		gBufferDS->bind(GBUFFER_DRAW);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		BoundingBox bb = mainMesh->getBoundingBox();
+		glUniform3f(minPDeferredLocation, bb.min.x, bb.min.y, bb.min.z);
+		glUniform3f(maxPDeferredLocation, bb.max.x, bb.max.y, bb.max.z);
+		mainMesh->Render(positionDeferredLocation, texCoordDeferredLocation, normDeferredLocation, samplerDeferredLocation);
+		
+		gBufferDS->bind(GBUFFER_DEFAULT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		gBufferDS->bind(GBUFFER_READ);
+		if (renderMode == RENDER_ALL) renderAll(width(),height());
+		else {
+			glReadBuffer(GL_COLOR_ATTACHMENT0+renderMode);
+			glBlitFramebuffer(0, 0, width(), height(), 0, 0, width(), height(), GL_COLOR_BUFFER_BIT, GL_LINEAR);
+		}
+	}
 	updateFPS();
 }
 

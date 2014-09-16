@@ -1,7 +1,7 @@
 #ifndef DEFERREDSHADING_H
 #define DEFERREDSHADING_H
 
-#include <QtGui/QMainWindow>
+#include <QtGui>
 #include <QSlider>
 #include "ui_deferredshading.h"
 

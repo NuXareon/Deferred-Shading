@@ -1,6 +1,6 @@
-#include <QGLWidget>
-#include <QTime>
 #include "mesh.h"
+#include "gbuffer.h"
+#include "utils.h"
 
 class GLWidget : public QGLWidget
 {
@@ -20,6 +20,12 @@ public slots:
 	// Lighting
 	void modifyMaxIntensity(QString s);
 	void modifyBoundingBoxScale(QString s);
+	// Render
+	void setForwardRenderMode();
+	void setPositionRenderMode();
+	void setNormalRenderMode();
+	void setDiffuseRenderMode();
+	void setDeferredRenderMode();
 	// Misc.
 	void loadModel(std::string path);					// Loads a model located on path.
 	void genLightning(int n);							// Modifies nLights and regenerates lightning, see initializeLightning().
@@ -47,15 +53,23 @@ private:
 	// Mesh info
 	Mesh *mainMesh;
 	std::string modelPath;
-	GLuint shaderProgram;
 	// Timers
 	QTime* t;
 	int fps, frames;
 	int inputTimerId, drawTimerId;
 	// Shader atribute and uniform locations
+	GLuint shaderProgram;
+	GLuint shaderProgramDeferred;
+	renderModeType renderMode;
 	GLuint positionLocation;
 	GLuint texCoordLocation;
 	GLuint normLocation;
+	GLuint positionDeferredLocation;
+	GLuint texCoordDeferredLocation;
+	GLuint normDeferredLocation;
+	GLuint samplerDeferredLocation;
+	GLuint minPDeferredLocation;
+	GLuint maxPDeferredLocation;
 	GLuint samplerLocation;
 	GLuint ambientColorLocation;
 	GLuint ambientIntensityLocation;
@@ -76,10 +90,13 @@ private:
 	unsigned int nLights;								// Actual number of lights (nLights < N_MAX_LIGHTS)
 	float lightingBoundingBoxScale;
 	float maxIntensity;
+	// Deferred
+	gbuffer *gBufferDS;									// G-buffer: framebuffer with the textures we will use for deferred shading
 	// Functions
 	void initializeLightingGL();						// Initializes lightning on openGL. (not used)(should be remove)
 	void initializeLighting();							// Initializes nLights point lights with pseudo-random attributes.
 	void initializeShaders();							// Reads and compiles the vertex and fragment shader.
+	void initializeShadersDeferred();					// same as initilizeShaders() but for deferred shading shaders.
 	void updateFPS();									// Keeps track of the fps of the painGL function.
 	void initLocations();								// Initializes the lovation variables from the shaders.
 	void setLightUniforms();							// Sends lightning information to the shaders.
