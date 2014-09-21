@@ -113,7 +113,16 @@
     <None Include="forward_shader.vs">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="deferred_shader.fs">
+    <None Include="deferred_shader_debug.fs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="deferred_shader_geo.fs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="deferred_shader_light.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="deferred_shader_light.fs">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

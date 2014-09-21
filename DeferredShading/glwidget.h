@@ -20,11 +20,13 @@ public slots:
 	// Lighting
 	void modifyMaxIntensity(QString s);
 	void modifyBoundingBoxScale(QString s);
+	void modifyThreshold(QString);
 	// Render
 	void setForwardRenderMode();
 	void setPositionRenderMode();
 	void setNormalRenderMode();
 	void setDiffuseRenderMode();
+	void setAllRenderMode();
 	void setDeferredRenderMode();
 	// Misc.
 	void loadModel(std::string path);					// Loads a model located on path.
@@ -33,6 +35,7 @@ public slots:
 signals:
 	void updateFPSSignal(int fps);
 	void updateLightIntensityIn(QString s);
+	void updateRenderMode(QString s);
 
 protected:
     void initializeGL();
@@ -59,18 +62,45 @@ private:
 	int inputTimerId, drawTimerId;
 	// Shader atribute and uniform locations
 	GLuint shaderProgram;
-	GLuint shaderProgramDeferred;
+	GLuint shaderProgramDeferredGeo;
+	GLuint shaderProgramDeferredLight;
+	GLuint shaderProgramDeferredDebug;
+
 	renderModeType renderMode;
+
 	GLuint positionLocation;
 	GLuint texCoordLocation;
 	GLuint normLocation;
+	GLuint samplerLocation;
+
 	GLuint positionDeferredLocation;
 	GLuint texCoordDeferredLocation;
 	GLuint normDeferredLocation;
 	GLuint samplerDeferredLocation;
 	GLuint minPDeferredLocation;
 	GLuint maxPDeferredLocation;
-	GLuint samplerLocation;
+
+	GLuint positionDeferredDebugLocation;
+	GLuint texCoordDeferredDebugLocation;
+	GLuint normDeferredDebugLocation;
+	GLuint samplerDeferredDebugLocation;
+	GLuint minPDeferredDebugLocation;
+	GLuint maxPDeferredDebugLocation;
+
+	GLuint positionDeferredGeoLocation;
+	GLuint texCoordDeferredGeoLocation;
+	GLuint normDeferredGeoLocation;
+	GLuint samplerDeferredGeoLocation;
+
+	GLuint screenSizeDeferredLightLocation;
+	GLuint positionBufferDeferredLightLocation;
+	GLuint normalBufferDeferredLightLocation;
+	GLuint diffuseBufferDeferredLightLocation;
+	GLuint pLightColorDeferredLightLocation;
+	GLuint pLightIntensityDeferredLightLocation;
+	GLuint pLightPositionDeferredLightLocation;
+	GLuint pLightAttenuationDeferredLightLocation;
+
 	GLuint ambientColorLocation;
 	GLuint ambientIntensityLocation;
 	GLuint directionalColorLocation;
@@ -90,6 +120,7 @@ private:
 	unsigned int nLights;								// Actual number of lights (nLights < N_MAX_LIGHTS)
 	float lightingBoundingBoxScale;
 	float maxIntensity;
+	int threshold;
 	// Deferred
 	gbuffer *gBufferDS;									// G-buffer: framebuffer with the textures we will use for deferred shading
 	// Functions
@@ -97,6 +128,7 @@ private:
 	void initializeLighting();							// Initializes nLights point lights with pseudo-random attributes.
 	void initializeShaders();							// Reads and compiles the vertex and fragment shader.
 	void initializeShadersDeferred();					// same as initilizeShaders() but for deferred shading shaders.
+	void initializeShaderProgram(const char *vsP, const char *fsP, GLuint *sp);
 	void updateFPS();									// Keeps track of the fps of the painGL function.
 	void initLocations();								// Initializes the lovation variables from the shaders.
 	void setLightUniforms();							// Sends lightning information to the shaders.

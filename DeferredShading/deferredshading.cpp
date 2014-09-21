@@ -42,12 +42,14 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	QAction *positionRenderAct = new QAction(tr("&Position"), this);
 	QAction *diffuseRenderAct = new QAction(tr("&Diffuse"), this);
 	QAction *normalRenderAct = new QAction(tr("&Normal"), this);
+	QAction *allRenderAct = new QAction(tr("&All"), this);
 	renderMenu->addAction(forwardRenderAct);
 	renderMenu->addAction(deferredRenderAct);
 	renderMenu->addSeparator();
 	renderMenu->addAction(positionRenderAct);
 	renderMenu->addAction(diffuseRenderAct);
 	renderMenu->addAction(normalRenderAct);
+	renderMenu->addAction(allRenderAct);
 
 	// Validators
 	QDoubleValidator *doubleValidator = new QDoubleValidator(0.01,10.0,2);
@@ -56,6 +58,16 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	doubleValidator->setNotation(QDoubleValidator::StandardNotation);
 
 	QIntValidator *intValidator = new QIntValidator(0,N_MAX_LIGHTS);
+
+	// Separators
+	QFrame *line = new QFrame();
+	line->setFrameShape(QFrame::VLine);
+
+	QFrame *line2 = new QFrame();
+	line2->setFrameShape(QFrame::VLine);
+
+	QFrame *line3 = new QFrame();
+	line3->setFrameShape(QFrame::VLine);
 
 	// Camera Sensitivity
 	QLabel *sensibilityLabel = new QLabel();
@@ -72,6 +84,14 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	QLineEdit *cameraSpeedIn = new QLineEdit();
 	cameraSpeedIn->setValidator(doubleValidator);
 	cameraSpeedIn->setText("1.0");
+
+	// Threshold (deferred only)
+	QLabel *thresholdLabel = new QLabel();
+	thresholdLabel->setText("Threshold (Deferred only): ");
+
+	QLineEdit *thresholdIn = new QLineEdit();
+	thresholdIn->setValidator(intValidator);
+	thresholdIn->setText("256");
 
 	// Lights
 	QLabel *lightingLabel = new QLabel();
@@ -106,6 +126,11 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 
 	QPushButton *genLightsButton = new QPushButton("Gen. Lights");
 
+	// Render Mode
+	QLabel *renderModeLabel = new QLabel();
+	renderModeLabel->setText("Forward");
+	renderModeLabel->setAlignment(Qt::AlignRight);
+
 	// FPS
 	QLabel *fpsLabelNum = new QLabel();
 	fpsLabelNum->setNum(0);
@@ -127,6 +152,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	connect(positionRenderAct,SIGNAL(triggered()), glWidget, SLOT(setPositionRenderMode()));
 	connect(diffuseRenderAct,SIGNAL(triggered()), glWidget, SLOT(setDiffuseRenderMode()));
 	connect(normalRenderAct,SIGNAL(triggered()), glWidget, SLOT(setNormalRenderMode()));
+	connect(allRenderAct,SIGNAL(triggered()), glWidget, SLOT(setAllRenderMode()));
 	connect(this,SIGNAL(keyPressed(int)), glWidget, SLOT(addKey(int)));
 	connect(this,SIGNAL(keyReleased(int)), glWidget, SLOT(removeKey(int)));
 	connect(cameraSensitivityIn,SIGNAL(textChanged(QString)),glWidget,SLOT(modifyCameraSensitivity(QString)));
@@ -138,6 +164,8 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	connect(lighBBScaleIn, SIGNAL(textChanged(QString)), glWidget, SLOT(modifyBoundingBoxScale(QString)));
 	connect(lighIntensityIn, SIGNAL(textChanged(QString)), glWidget, SLOT(modifyMaxIntensity(QString)));
 	connect(glWidget, SIGNAL(updateLightIntensityIn(QString)), lighIntensityIn, SLOT(setText(QString)));
+	connect(glWidget, SIGNAL(updateRenderMode(QString)), renderModeLabel, SLOT(setText(QString)));
+	connect(thresholdIn, SIGNAL(textChanged(QString)), glWidget, SLOT(modifyThreshold(QString)));
 	
 	// Set layout content
     mainLayout->addWidget(glWidget);
@@ -146,7 +174,10 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	thirdLayout->addWidget(cameraSensitivityIn);
 	thirdLayout->addWidget(speedLabel);
 	thirdLayout->addWidget(cameraSpeedIn);
-	thirdLayout->addWidget(lightingLabel);
+	thirdLayout->addWidget(thresholdLabel);
+	thirdLayout->addWidget(thresholdIn);
+	thirdLayout->addWidget(line);
+	//thirdLayout->addWidget(lightingLabel);
 	thirdLayout->addWidget(lightBBScaleLabel);
 	thirdLayout->addWidget(lighBBScaleIn);
 	thirdLayout->addWidget(lightIntesityLabel);
@@ -154,6 +185,9 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	thirdLayout->addWidget(nLightsLabel);
 	thirdLayout->addWidget(nLightsIn);
 	thirdLayout->addWidget(genLightsButton);
+	thirdLayout->addWidget(line2);
+	thirdLayout->addWidget(renderModeLabel);
+	thirdLayout->addWidget(line3);
 	thirdLayout->addWidget(fpsLabel);
 	thirdLayout->addWidget(fpsLabelNum);
 

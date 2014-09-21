@@ -72,3 +72,28 @@ bool utils::checkExtension(char *ext)
     }
     return false;
 }
+
+void utils::drawSphere(double r, int lats, int longs) {
+    int i, j;
+	double pi = 3.1415927;
+    for(i = 0; i <= lats; i++) {
+       double lat0 = pi * (-0.5 + (double) (i - 1) / lats);
+       double z0  = sin(lat0);
+       double zr0 =  cos(lat0);
+
+       double lat1 = pi * (-0.5 + (double) i / lats);
+       double z1 = sin(lat1);
+       double zr1 = cos(lat1);
+
+       glBegin(GL_QUAD_STRIP);
+       for(j = 0; j <= longs; j++) {
+           double lng = 2 * pi * (double) (j - 1) / longs;
+           double x = cos(lng);
+           double y = sin(lng);
+
+           glVertex3f(x * zr0*r, y * zr0*r, z0*r);
+           glVertex3f(x * zr1*r, y * zr1*r, z1*r);
+       }
+       glEnd();
+   }
+ }

@@ -2,7 +2,6 @@
 
 const int N_MAX_LIGHTS = 100;
 
-//varying vec4 color;
 varying vec2 texCoord0;
 varying vec3 norm0;
 varying vec3 position0;
@@ -33,7 +32,6 @@ uniform sampler2D sampler;
 
 void main()
 {
-    //gl_FragColor = color;
     // Ambient Light
     vec4 ambientColor = vec4(aLight.color,1.0)*aLight.intensity;
     //Diretional Light

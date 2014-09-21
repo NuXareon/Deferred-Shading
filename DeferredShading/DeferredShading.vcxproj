@@ -171,7 +171,10 @@ copy /Y "$(SolutionDir)DeferredShading\ImageMagick\release\bin\*.dll" "$(OutDir)
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="deferred_shader.fs" />
+    <None Include="deferred_shader_debug.fs" />
+    <None Include="deferred_shader_geo.fs" />
+    <None Include="deferred_shader_light.fs" />
+    <None Include="deferred_shader_light.vs" />
     <None Include="forward_shader.fs" />
     <None Include="forward_shader.vs" />
   </ItemGroup>

@@ -2,8 +2,12 @@
 
 const char* VSPath = "forward_shader.vs";
 const char* FSPath = "forward_shader.fs";
-const char* VSPathDeferred = "forward_shader.vs";
-const char* FSPathDeferred = "deferred_shader.fs";
+const char* VSPathDeferredGeo = "forward_shader.vs";
+const char* FSPathDeferredGeo = "deferred_shader_geo.fs";
+const char* VSPathDeferredDebug = "forward_shader.vs";
+const char* FSPathDeferredDebug = "deferred_shader_debug.fs";
+const char* VSPathDeferredLight = "deferred_shader_light.vs";
+const char* FSPathDeferredLight = "deferred_shader_light.fs";
 
 GLWidget::GLWidget(QWidget *parent) :
     QGLWidget()
@@ -23,9 +27,10 @@ GLWidget::GLWidget(QWidget *parent) :
 	nLights = INITIAL_LIGHTS;
 	lightingBoundingBoxScale = 0.65f;
 	maxIntensity = 0.0f;
+	threshold = LIGHT_THRESHOLD;
 	// Timers
 	inputTimerId = startTimer(1000/60);			// Camera refresh rate (60 FPS)
-	drawTimerId = startTimer(1000/60);			// Render refresh rate. V-SYNC MUST BE TURNED OFF.
+	drawTimerId = startTimer(0);				// Render refresh rate. V-SYNC MUST BE TURNED OFF.
 	// Render
 	renderMode = RENDER_FORWARD;
 }
@@ -73,82 +78,50 @@ void GLWidget::genLightning(int n)
 	initializeLighting();
 }
 
-void GLWidget::setForwardRenderMode()	{renderMode = RENDER_FORWARD;}
-void GLWidget::setPositionRenderMode()	{renderMode = RENDER_POSITION;}
-void GLWidget::setNormalRenderMode()	{renderMode = RENDER_NORMAL;}
-void GLWidget::setDiffuseRenderMode()	{renderMode = RENDER_DIFFUSE;}
-void GLWidget::setDeferredRenderMode()	{renderMode = RENDER_ALL;}
-
-void GLWidget::initializeShaders()
+void GLWidget::setForwardRenderMode()	
 {
-	shaderProgram = glCreateProgram();
-
-	// Vertex shader load
-	std::string vertexShader;
-
-	if (!utils::readFile(VSPath, vertexShader)) exit(1);
-	
-	GLuint vShaderObj = glCreateShader(GL_VERTEX_SHADER);
-
-	const char* shaderFiles[1];
-	shaderFiles[0] = vertexShader.c_str();
-	GLint lengths[1];
-	lengths[0] = vertexShader.size();
-	glShaderSource(vShaderObj, 1, shaderFiles, lengths);
-	glCompileShader(vShaderObj);
-	GLint success;
-	glGetShaderiv(vShaderObj, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		char InfoLog[1024];
-		glGetShaderInfoLog(vShaderObj, sizeof(InfoLog), NULL, InfoLog);
-		fprintf(stderr, "Error compiling shader: '%s'\n", InfoLog);
-	}
-
-	glAttachShader(shaderProgram,vShaderObj);
-
-	// Fragment shader load
-	std::string fragmentShader;
-
-	if (!utils::readFile(FSPath, fragmentShader)) exit(1);
-	
-	GLuint fShaderObj = glCreateShader(GL_FRAGMENT_SHADER);
-
-	shaderFiles[0] = fragmentShader.c_str();
-	lengths[0] = fragmentShader.size();
-	glShaderSource(fShaderObj, 1, shaderFiles, lengths);
-	glCompileShader(fShaderObj);
-	glGetShaderiv(fShaderObj, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		char InfoLog[1024];
-		glGetShaderInfoLog(fShaderObj, sizeof(InfoLog), NULL, InfoLog);
-		fprintf(stderr, "Error compiling shader: '%s'\n", InfoLog);
-	}
-
-	glAttachShader(shaderProgram,fShaderObj);
-	glLinkProgram(shaderProgram);
-	glGetProgramiv(shaderProgram,GL_LINK_STATUS,&success);
-	if (!success) {
-		char InfoLog[1024];
-		glGetShaderInfoLog(shaderProgram, sizeof(InfoLog), NULL, InfoLog);
-		fprintf(stderr, "Error linking shader program: '%s'\n", InfoLog);
-	}
-	glValidateProgram(shaderProgram);
-	glGetProgramiv(shaderProgram,GL_VALIDATE_STATUS,&success);
-	if (!success) {
-		char InfoLog[1024];
-		glGetShaderInfoLog(shaderProgram, sizeof(InfoLog), NULL, InfoLog);
-		fprintf(stderr, "Error linking shader program: '%s'\n", InfoLog);
-	}
+	renderMode = RENDER_FORWARD;
+	emit updateRenderMode("Forward");
 }
 
-void GLWidget::initializeShadersDeferred()
+void GLWidget::setPositionRenderMode()	
 {
-	shaderProgramDeferred = glCreateProgram();
+	renderMode = RENDER_POSITION;
+	emit updateRenderMode("Positions");
+}
+
+void GLWidget::setNormalRenderMode()	
+{
+	renderMode = RENDER_NORMAL;
+	emit updateRenderMode("Normals");
+}
+
+void GLWidget::setDiffuseRenderMode()	
+{
+	renderMode = RENDER_DIFFUSE;
+	emit updateRenderMode("Diffuse");
+}
+
+void GLWidget::setAllRenderMode()		
+{
+	renderMode = RENDER_ALL;
+	emit updateRenderMode("All");
+}
+
+void GLWidget::setDeferredRenderMode()	
+{
+	renderMode = RENDER_DEFERRED;
+	emit updateRenderMode("Deferred");
+}
+
+void GLWidget::initializeShaderProgram(const char *vsP, const char *fsP, GLuint *sp)
+{
+	*(sp) = glCreateProgram();
 
 	// Vertex shader load
 	std::string vertexShader;
 
-	if (!utils::readFile(VSPathDeferred, vertexShader)) exit(1);
+	if (!utils::readFile(vsP, vertexShader)) exit(1);
 	
 	GLuint vShaderObj = glCreateShader(GL_VERTEX_SHADER);
 
@@ -166,12 +139,12 @@ void GLWidget::initializeShadersDeferred()
 		fprintf(stderr, "Error compiling shader: '%s'\n", InfoLog);
 	}
 
-	glAttachShader(shaderProgramDeferred,vShaderObj);
+	glAttachShader(*(sp),vShaderObj);
 
 	// Fragment shader load
 	std::string fragmentShader;
 
-	if (!utils::readFile(FSPathDeferred, fragmentShader)) exit(1);
+	if (!utils::readFile(fsP, fragmentShader)) exit(1);
 	
 	GLuint fShaderObj = glCreateShader(GL_FRAGMENT_SHADER);
 
@@ -186,19 +159,19 @@ void GLWidget::initializeShadersDeferred()
 		fprintf(stderr, "Error compiling shader: '%s'\n", InfoLog);
 	}
 
-	glAttachShader(shaderProgramDeferred,fShaderObj);
-	glLinkProgram(shaderProgramDeferred);
-	glGetProgramiv(shaderProgramDeferred,GL_LINK_STATUS,&success);
+	glAttachShader(*(sp),fShaderObj);
+	glLinkProgram(*(sp));
+	glGetProgramiv(*(sp),GL_LINK_STATUS,&success);
 	if (!success) {
 		char InfoLog[1024];
-		glGetShaderInfoLog(shaderProgramDeferred, sizeof(InfoLog), NULL, InfoLog);
+		glGetShaderInfoLog(shaderProgram, sizeof(InfoLog), NULL, InfoLog);
 		fprintf(stderr, "Error linking shader program: '%s'\n", InfoLog);
 	}
-	glValidateProgram(shaderProgramDeferred);
-	glGetProgramiv(shaderProgramDeferred,GL_VALIDATE_STATUS,&success);
+	glValidateProgram(*(sp));
+	glGetProgramiv(*(sp),GL_VALIDATE_STATUS,&success);
 	if (!success) {
 		char InfoLog[1024];
-		glGetShaderInfoLog(shaderProgramDeferred, sizeof(InfoLog), NULL, InfoLog);
+		glGetShaderInfoLog(shaderProgram, sizeof(InfoLog), NULL, InfoLog);
 		fprintf(stderr, "Error linking shader program: '%s'\n", InfoLog);
 	}
 }
@@ -214,12 +187,28 @@ void GLWidget::initLocations()
 	directionalColorLocation = glGetUniformLocation(shaderProgram,"dLight.color");
 	directionalIntensityLocation = glGetUniformLocation(shaderProgram,"dLight.intensity");
 	directionalDirectionLocation = glGetUniformLocation(shaderProgram,"dLight.direction");
-	positionDeferredLocation = glGetAttribLocation(shaderProgramDeferred,"position");
-	texCoordDeferredLocation = glGetAttribLocation(shaderProgramDeferred,"texCoord");
-	normDeferredLocation = glGetAttribLocation(shaderProgramDeferred,"norm");
-	samplerDeferredLocation = glGetUniformLocation(shaderProgramDeferred,"sampler");
-	minPDeferredLocation = glGetUniformLocation(shaderProgramDeferred,"minP");
-	maxPDeferredLocation = glGetUniformLocation(shaderProgramDeferred,"maxP");
+
+	positionDeferredDebugLocation = glGetAttribLocation(shaderProgramDeferredDebug,"position");
+	texCoordDeferredDebugLocation = glGetAttribLocation(shaderProgramDeferredDebug,"texCoord");
+	normDeferredDebugLocation = glGetAttribLocation(shaderProgramDeferredDebug,"norm");
+	samplerDeferredDebugLocation = glGetUniformLocation(shaderProgramDeferredDebug,"sampler");
+	minPDeferredDebugLocation = glGetUniformLocation(shaderProgramDeferredDebug,"minP");
+	maxPDeferredDebugLocation = glGetUniformLocation(shaderProgramDeferredDebug,"maxP");
+
+	positionDeferredGeoLocation = glGetAttribLocation(shaderProgramDeferredGeo,"position");
+	texCoordDeferredGeoLocation = glGetAttribLocation(shaderProgramDeferredGeo,"texCoord");
+	normDeferredGeoLocation = glGetAttribLocation(shaderProgramDeferredGeo,"norm");
+	samplerDeferredGeoLocation = glGetUniformLocation(shaderProgramDeferredGeo,"sampler");
+
+	screenSizeDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"screenSize");
+	positionBufferDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"positionBuffer");
+	normalBufferDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"normalBuffer");
+	diffuseBufferDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"diffuseBuffer");
+	pLightColorDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"pLight.color");
+	pLightIntensityDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"pLight.intensity");
+	pLightPositionDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"pLight.position");
+	pLightAttenuationDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"pLight.attenuation");
+
 	std::stringstream sstm;
 	std::string uniformName;
 	std::string pl_str = "pointLights[";
@@ -257,14 +246,15 @@ void GLWidget::initializeLighting()
 	std::uniform_real_distribution<float> distributionY(bb.min.y,bb.max.y);
 	std::uniform_real_distribution<float> distributionZ(bb.min.z,bb.max.z);
 	std::uniform_real_distribution<float> distributionC(0.0,1.0);
-	std::uniform_real_distribution<float> distributionI(maxIntensity/2,maxIntensity);
+	//std::uniform_real_distribution<float> distributionI(maxIntensity/2,maxIntensity);
 	float pAttenuation[] = {1.0f, 60.0f, 0.0f};
 
 	// Populate pointLightsArr with nLight
 	for (unsigned int i = 0; i < nLights; i++){
 		float pColor[] = {distributionC(generator), distributionC(generator), distributionC(generator)};
 		float pPosition[] = {distributionX(generator),distributionY(generator),distributionZ(generator)};
-		float pIntensity = distributionI(generator);
+		//float pIntensity = distributionI(generator);
+		float pIntensity = maxIntensity;
 		pointLightsArr[i] = pointLight(pColor, pIntensity, pPosition, pAttenuation);
 	}
 	
@@ -287,7 +277,7 @@ void GLWidget::initializeGL()
 	#ifdef _WIN32
 	utils::enableVSyncWin(0);
 	#elif __linux__
-	//utils::enableVSyncLinux(0);
+	utils::enableVSyncLinux(0);
 	#endif
 
 	gBufferDS = new gbuffer;
@@ -296,15 +286,18 @@ void GLWidget::initializeGL()
 
     //glShadeModel(GL_SMOOTH);
 	//initializeLightingGL();
-	initializeShaders();
-	initializeShadersDeferred();
+	//initializeShaders();
+	//initializeShadersDeferred();
+	initializeShaderProgram(VSPath, FSPath, &shaderProgram);
+	initializeShaderProgram(VSPathDeferredGeo, FSPathDeferredGeo, &shaderProgramDeferredGeo);
+	initializeShaderProgram(VSPathDeferredLight, FSPathDeferredLight, &shaderProgramDeferredLight);
+	initializeShaderProgram(VSPathDeferredDebug, FSPathDeferredDebug, &shaderProgramDeferredDebug);
 	initLocations();
 	
 	frames = 0;
 	t = new QTime();
 	t->start();
 }
-
 
 void GLWidget::resizeGL(int width, int height)
 {
@@ -340,6 +333,23 @@ void GLWidget::setLightUniforms()
 
 }
 
+void drawAxis()
+{
+	glUseProgram(0);
+	glBegin(GL_LINES);
+		glColor3f(1.0f,0.0f,0.0f);
+		glVertex3f(0.0f,0.0f,0.0f);
+		glVertex3f(100.0f,0.0f,0.0f);
+		glColor3f(0.0f,1.0f,0.0f);
+		glVertex3f(0.0f,0.0f,0.0f);
+		glVertex3f(0.0f,100.0f,0.0f);
+		glColor3f(0.0f,0.0f,1.0f);
+		glVertex3f(0.0f,0.0f,0.0f);
+		glVertex3f(0.0f,0.0f,100.0f);
+		glColor3f(0.5f,0.5f,0.5f);
+	glEnd();
+}
+
 void renderAll(int const width, int const height)
 {
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
@@ -355,49 +365,109 @@ void GLWidget::paintGL()
 	const float PI = 3.1415927f;
 	float alphaRad = PI*alpha/180;
 	float betaRad = PI*beta/180;
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
 	gluLookAt(	xPos, yPos, zPos,
 				xPos+cos(betaRad)*cos(alphaRad), yPos+sin(betaRad), zPos-cos(betaRad)*sin(alphaRad),
 				0.0f, 1.0f, 0.0f);
 
-	// Draw axis
-	/*
-	glFuncs.glUseProgram(0);
-	glBegin(GL_LINES);
-		glColor3f(1.0f,0.0f,0.0f);
-		glVertex3f(0.0f,0.0f,0.0f);
-		glVertex3f(100.0f,0.0f,0.0f);
-		glColor3f(0.0f,1.0f,0.0f);
-		glVertex3f(0.0f,0.0f,0.0f);
-		glVertex3f(0.0f,100.0f,0.0f);
-		glColor3f(0.0f,0.0f,1.0f);
-		glVertex3f(0.0f,0.0f,0.0f);
-		glVertex3f(0.0f,0.0f,100.0f);
-		glColor3f(0.5f,0.5f,0.5f);
-		//glVertex3f(0.0f,0.0f,0.0f);
-		//glVertex3f(100.0f,100.0f,100.0f);
-	glEnd();
-	*/
+	//drawAxis();
+
 	if (renderMode == RENDER_FORWARD){
-		// Draw geometry
+		// Set mode
 		glUseProgram(shaderProgram);
 		setLightUniforms();
+		gBufferDS->bind(GBUFFER_DEFAULT);
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		//Draw Geometry
 		mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
 	} 
 	else if (renderMode == RENDER_DEFERRED){
-		// Draw geometry (deferred)
+		// Set Mode
+		glUseProgram(shaderProgramDeferredGeo);
+		gBufferDS->bind(GBUFFER_DRAW);
+		glDepthMask(GL_TRUE);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glEnable(GL_DEPTH_TEST);	// we need depth test only here in order to  get only the closest pixels on the Gbuffers
+		glDisable(GL_BLEND);		// we dont need blending on the geo pass
+		// Draw Geometry
+		mainMesh->Render(positionDeferredGeoLocation, texCoordDeferredGeoLocation, normDeferredGeoLocation, samplerDeferredGeoLocation);
+		glDepthMask(GL_FALSE);
+		glDisable(GL_DEPTH_TEST);
+		// setup light pass + bucle for each light set uniforms and draw
+		
+		glUseProgram(shaderProgramDeferredLight);
+		glEnable(GL_BLEND);
+		glBlendEquation(GL_FUNC_ADD);
+		glBlendFunc(GL_ONE, GL_ONE);
+
+		gBufferDS->bind(GBUFFER_READ_TEX);
+		glClear(GL_COLOR_BUFFER_BIT);
+		
+		/*
+		uniform vec2 screenSize;
+		uniform sampler2D positionBuffer;
+		uniform sampler2D normalBuffer;
+		uniform sampler2D diffuseBuffer;
+		uniform pointLight pLight;
+		    vec3 color;
+    float intensity;
+    vec3 position;
+    vec3 attenuation;
+		*/
+		/*
+		GLuint screenSizeDeferredLightLocation;
+		GLuint positionBufferDeferredLightLocation;
+		GLuint normalBufferDeferredLightLocation;
+		GLuint diffuseBufferDeferredLightLocation;
+		GLuint pLightDeferredLightLocation;
+		*/
+
+		
+		glUniform1i(positionBufferDeferredLightLocation, 0);
+		glUniform1i(normalBufferDeferredLightLocation, 1);
+		glUniform1i(diffuseBufferDeferredLightLocation, 2);
+		glUniform2f(screenSizeDeferredLightLocation, width(), height());
+		
+		for (unsigned int i = 0; i < nLights; i++) {
+			pointLight l = pointLightsArr[i];
+			glUniform3f(pLightColorDeferredLightLocation, l.color.r, l.color.g, l.color.b);
+			glUniform1f(pLightIntensityDeferredLightLocation, l.intensity);
+			glUniform3f(pLightPositionDeferredLightLocation, l.position.x, l.position.y, l.position.z);
+			glUniform3f(pLightAttenuationDeferredLightLocation, l.attenuation.constant, l.attenuation.linear, l.attenuation.exp);
+			float r = (threshold*max(max(l.color.r,l.color.g),l.color.b)*l.intensity+l.attenuation.constant)/l.attenuation.linear;
+			glPushMatrix();
+			glTranslatef(l.position.x, l.position.y, l.position.z);
+			utils::drawSphere(r,16,16);
+			glPopMatrix();
+		}
+		
+		glDisable(GL_BLEND);
+		glEnable(GL_DEPTH_TEST);
+		
+
+		/*
+		// Copy Gbuffer to main framebuffer
+		gBufferDS->bind(GBUFFER_DEFAULT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		gBufferDS->bind(GBUFFER_READ);
+		renderAll(width(),height());
+		*/
 	}
 	else if (renderMode >= 0 && renderMode < RENDER_FORWARD) {
-		// Draw only one component
-		glUseProgram(shaderProgramDeferred);
+		// Set Mode
+		glUseProgram(shaderProgramDeferredDebug);
 		gBufferDS->bind(GBUFFER_DRAW);
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		BoundingBox bb = mainMesh->getBoundingBox();
-		glUniform3f(minPDeferredLocation, bb.min.x, bb.min.y, bb.min.z);
-		glUniform3f(maxPDeferredLocation, bb.max.x, bb.max.y, bb.max.z);
-		mainMesh->Render(positionDeferredLocation, texCoordDeferredLocation, normDeferredLocation, samplerDeferredLocation);
-		
+		glUniform3f(minPDeferredDebugLocation, bb.min.x, bb.min.y, bb.min.z);
+		glUniform3f(maxPDeferredDebugLocation, bb.max.x, bb.max.y, bb.max.z);
+		// Draw Geometry
+		mainMesh->Render(positionDeferredDebugLocation, texCoordDeferredDebugLocation, normDeferredDebugLocation, samplerDeferredDebugLocation);
+		// Copy G-buffer to main framebuffer
 		gBufferDS->bind(GBUFFER_DEFAULT);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		gBufferDS->bind(GBUFFER_READ);
@@ -465,6 +535,11 @@ void GLWidget::modifyCameraSpeed(QString s)
 void GLWidget::modifyMaxIntensity(QString s)
 {
 	maxIntensity = s.toFloat();
+}
+
+void GLWidget::modifyThreshold(QString s)
+{
+	threshold = s.toInt();
 }
 
 void GLWidget::modifyBoundingBoxScale(QString s)
