@@ -21,6 +21,9 @@ public slots:
 	void modifyMaxIntensity(QString s);
 	void modifyBoundingBoxScale(QString s);
 	void modifyThreshold(QString);
+	void modifyConstantAttenuation(QString s);
+	void modifyLinearAttenuation(QString s);
+	void modifyExpAttenuation(QString s);
 	// Render
 	void setForwardRenderMode();
 	void setPositionRenderMode();
@@ -121,10 +124,10 @@ private:
 	float lightingBoundingBoxScale;
 	float maxIntensity;
 	int threshold;
+	float constAtt, linearAtt, expAtt;
 	// Deferred
 	gbuffer *gBufferDS;									// G-buffer: framebuffer with the textures we will use for deferred shading
 	// Functions
-	void initializeLightingGL();						// Initializes lightning on openGL. (not used)(should be remove)
 	void initializeLighting();							// Initializes nLights point lights with pseudo-random attributes.
 	void initializeShaders();							// Reads and compiles the vertex and fragment shader.
 	void initializeShadersDeferred();					// same as initilizeShaders() but for deferred shading shaders.
@@ -132,4 +135,6 @@ private:
 	void updateFPS();									// Keeps track of the fps of the painGL function.
 	void initLocations();								// Initializes the lovation variables from the shaders.
 	void setLightUniforms();							// Sends lightning information to the shaders.
+	void setLightPassUniforms();						// Sends gBuffer infor to the shaders
+	void drawPointLight(pointLight l);					// Draws a sphere equivalent to a point light
 };

@@ -6,10 +6,14 @@ Implementation of the Deferred Shading Rendering Technique.
 Functionality
 -------------
 
-- Load 3d models with textures from various formats. (only .obj format garanteed)
+- Load 3d models with textures from various formats. (only .obj format tested)
 - Move through the scene using a first person camera. (WASD + left mouse, sensitivity and speed adjustable)
 - Genereate random lights (initially 20, up to a 100).
-- Adjust lighting parameters (intensity and bounding box scale).
+- Adjust lighting parameters (attenuation, intensity and bounding box scale).
+- 2 Render modes:
+    * Forward Render: standard OpenGL render.
+    * Deferred Render: Draws the scene in 2 passes: one to get the info of the geometry and another to apply the lighting, drawing light as spheres.
+- Debug Render Mode where the texture from the gbuffers are scaled to rgb colours.
 
 TODO
 ----

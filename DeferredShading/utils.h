@@ -15,14 +15,17 @@
 #include "glxext.h"
 #endif
 
-#define INVALID_BUFFER -	1
-#define N_MAX_LIGHTS		100
-#define	INITIAL_LIGHTS		20
-#define	GBUFFER_DEFAULT		0
-#define GBUFFER_READ		1
-#define GBUFFER_READ_TEX	2
-#define GBUFFER_DRAW		3
-#define LIGHT_THRESHOLD		256		// 256 = 8 bit color channel
+#define INVALID_BUFFER -		1
+#define N_MAX_LIGHTS			100
+#define	INITIAL_LIGHTS			20
+#define	GBUFFER_DEFAULT			0
+#define GBUFFER_READ			1
+#define GBUFFER_READ_TEX		2
+#define GBUFFER_DRAW			3
+#define LIGHT_THRESHOLD			256		// 256 = 8 bit color channel
+#define ATTENUATION_CONSTANT	1.0
+#define ATTENUATION_LINEAR		60.0
+#define ATTENUATION_EXP			0.0
 
 // Vector structs
 struct Vector3f
@@ -147,4 +150,5 @@ public:
 	static void enableVSyncLinux(int i);
 	static bool checkExtension(char* ext);
 	static void drawSphere(double r, int lats, int longs);
+	static float calcLightRadius(pointLight l, float threshold);
 };

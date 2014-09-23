@@ -28,6 +28,9 @@ GLWidget::GLWidget(QWidget *parent) :
 	lightingBoundingBoxScale = 0.65f;
 	maxIntensity = 0.0f;
 	threshold = LIGHT_THRESHOLD;
+	constAtt = ATTENUATION_CONSTANT;
+	linearAtt = ATTENUATION_LINEAR;
+	expAtt = ATTENUATION_EXP;
 	// Timers
 	inputTimerId = startTimer(1000/60);			// Camera refresh rate (60 FPS)
 	drawTimerId = startTimer(0);				// Render refresh rate. V-SYNC MUST BE TURNED OFF.
@@ -46,30 +49,6 @@ void GLWidget::loadModel(std::string path)
 	mainMesh = new Mesh();
     mainMesh->LoadMesh(modelPath);
 	initializeLighting();
-}
-
-void GLWidget::initializeLightingGL()
-{
-	glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-	glEnable(GL_LIGHT1);
-	//GLfloat light_ambient[4] = { 1.0, 1.0, 1.0, 0.1 };
-	GLfloat light_diffuse1[4] = { 1.0, 1.0, 1.0, 1.0 };
-	GLfloat light_diffuse2[4] = { 1.0, 1.0, 1.0, 1.0 };
-	GLfloat light_specular[4] = { 1.0, 1.0, 1.0, 1.0 };
-    //static GLfloat lightPosition[4] = { 0.5, 5.0, 7.0, 1.0};
-	static GLfloat lightPosition[4] = { -100.0, 1.0, 10.0, 1.0};
-	static GLfloat lightPosition2[4] = { 100.0, 1.0, 10.0, 1.0};
-	//glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse1);
-    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-	glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.3f);
-	//glLightfv(GL_LIGHT1, GL_AMBIENT, light_ambient);
-	glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse2);
-	glLightfv(GL_LIGHT1, GL_POSITION, lightPosition2);
-	glLightfv(GL_LIGHT1, GL_SPECULAR, light_specular);
-	glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, 0.3f);
 }
 
 void GLWidget::genLightning(int n)
@@ -247,7 +226,7 @@ void GLWidget::initializeLighting()
 	std::uniform_real_distribution<float> distributionZ(bb.min.z,bb.max.z);
 	std::uniform_real_distribution<float> distributionC(0.0,1.0);
 	//std::uniform_real_distribution<float> distributionI(maxIntensity/2,maxIntensity);
-	float pAttenuation[] = {1.0f, 60.0f, 0.0f};
+	float pAttenuation[] = {constAtt, linearAtt, expAtt};
 
 	// Populate pointLightsArr with nLight
 	for (unsigned int i = 0; i < nLights; i++){
@@ -333,6 +312,14 @@ void GLWidget::setLightUniforms()
 
 }
 
+void GLWidget::setLightPassUniforms()
+{
+	glUniform1i(positionBufferDeferredLightLocation, gbuffer::GBUFFER_POSITION);
+	glUniform1i(normalBufferDeferredLightLocation, gbuffer::GBUFFER_NORMAL);
+	glUniform1i(diffuseBufferDeferredLightLocation, gbuffer::GBUFFER_DIFFUSE);
+	glUniform2f(screenSizeDeferredLightLocation, width(), height());
+}
+
 void drawAxis()
 {
 	glUseProgram(0);
@@ -376,10 +363,12 @@ void GLWidget::paintGL()
 		// Set mode
 		glUseProgram(shaderProgram);
 		setLightUniforms();
+
 		gBufferDS->bind(GBUFFER_DEFAULT);
 		glDepthMask(GL_TRUE);
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		//Draw Geometry
 		mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
 	} 
@@ -389,10 +378,12 @@ void GLWidget::paintGL()
 		gBufferDS->bind(GBUFFER_DRAW);
 		glDepthMask(GL_TRUE);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glEnable(GL_DEPTH_TEST);	// we need depth test only here in order to  get only the closest pixels on the Gbuffers
+		glEnable(GL_DEPTH_TEST);	// we need depth test only here in order to get only the closest pixels on the Gbuffers
 		glDisable(GL_BLEND);		// we dont need blending on the geo pass
+
 		// Draw Geometry
 		mainMesh->Render(positionDeferredGeoLocation, texCoordDeferredGeoLocation, normDeferredGeoLocation, samplerDeferredGeoLocation);
+
 		glDepthMask(GL_FALSE);
 		glDisable(GL_DEPTH_TEST);
 		// setup light pass + bucle for each light set uniforms and draw
@@ -404,56 +395,14 @@ void GLWidget::paintGL()
 
 		gBufferDS->bind(GBUFFER_READ_TEX);
 		glClear(GL_COLOR_BUFFER_BIT);
-		
-		/*
-		uniform vec2 screenSize;
-		uniform sampler2D positionBuffer;
-		uniform sampler2D normalBuffer;
-		uniform sampler2D diffuseBuffer;
-		uniform pointLight pLight;
-		    vec3 color;
-    float intensity;
-    vec3 position;
-    vec3 attenuation;
-		*/
-		/*
-		GLuint screenSizeDeferredLightLocation;
-		GLuint positionBufferDeferredLightLocation;
-		GLuint normalBufferDeferredLightLocation;
-		GLuint diffuseBufferDeferredLightLocation;
-		GLuint pLightDeferredLightLocation;
-		*/
 
+		setLightPassUniforms();
 		
-		glUniform1i(positionBufferDeferredLightLocation, 0);
-		glUniform1i(normalBufferDeferredLightLocation, 1);
-		glUniform1i(diffuseBufferDeferredLightLocation, 2);
-		glUniform2f(screenSizeDeferredLightLocation, width(), height());
-		
-		for (unsigned int i = 0; i < nLights; i++) {
-			pointLight l = pointLightsArr[i];
-			glUniform3f(pLightColorDeferredLightLocation, l.color.r, l.color.g, l.color.b);
-			glUniform1f(pLightIntensityDeferredLightLocation, l.intensity);
-			glUniform3f(pLightPositionDeferredLightLocation, l.position.x, l.position.y, l.position.z);
-			glUniform3f(pLightAttenuationDeferredLightLocation, l.attenuation.constant, l.attenuation.linear, l.attenuation.exp);
-			float r = (threshold*max(max(l.color.r,l.color.g),l.color.b)*l.intensity+l.attenuation.constant)/l.attenuation.linear;
-			glPushMatrix();
-			glTranslatef(l.position.x, l.position.y, l.position.z);
-			utils::drawSphere(r,16,16);
-			glPopMatrix();
-		}
-		
+		// Draw Lights
+		for (unsigned int i = 0; i < nLights; i++) drawPointLight(pointLightsArr[i]);
+
 		glDisable(GL_BLEND);
 		glEnable(GL_DEPTH_TEST);
-		
-
-		/*
-		// Copy Gbuffer to main framebuffer
-		gBufferDS->bind(GBUFFER_DEFAULT);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		gBufferDS->bind(GBUFFER_READ);
-		renderAll(width(),height());
-		*/
 	}
 	else if (renderMode >= 0 && renderMode < RENDER_FORWARD) {
 		// Set Mode
@@ -462,11 +411,14 @@ void GLWidget::paintGL()
 		glDepthMask(GL_TRUE);
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		BoundingBox bb = mainMesh->getBoundingBox();
 		glUniform3f(minPDeferredDebugLocation, bb.min.x, bb.min.y, bb.min.z);
 		glUniform3f(maxPDeferredDebugLocation, bb.max.x, bb.max.y, bb.max.z);
+
 		// Draw Geometry
 		mainMesh->Render(positionDeferredDebugLocation, texCoordDeferredDebugLocation, normDeferredDebugLocation, samplerDeferredDebugLocation);
+
 		// Copy G-buffer to main framebuffer
 		gBufferDS->bind(GBUFFER_DEFAULT);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -478,6 +430,19 @@ void GLWidget::paintGL()
 		}
 	}
 	updateFPS();
+}
+
+void GLWidget::drawPointLight(pointLight l)
+{
+	glUniform3f(pLightColorDeferredLightLocation, l.color.r, l.color.g, l.color.b);
+	glUniform1f(pLightIntensityDeferredLightLocation, l.intensity);
+	glUniform3f(pLightPositionDeferredLightLocation, l.position.x, l.position.y, l.position.z);
+	glUniform3f(pLightAttenuationDeferredLightLocation, l.attenuation.constant, l.attenuation.linear, l.attenuation.exp);
+	float r = utils::calcLightRadius(l, threshold);
+	glPushMatrix();
+	glTranslatef(l.position.x, l.position.y, l.position.z);
+	utils::drawSphere(r,16,16);
+	glPopMatrix();
 }
 
 void GLWidget::updateFPS()
@@ -540,6 +505,21 @@ void GLWidget::modifyMaxIntensity(QString s)
 void GLWidget::modifyThreshold(QString s)
 {
 	threshold = s.toInt();
+}
+
+void GLWidget::modifyConstantAttenuation(QString s)
+{
+	constAtt= s.toFloat();
+}
+
+void GLWidget::modifyLinearAttenuation(QString s)
+{
+	linearAtt= s.toFloat();
+}
+
+void GLWidget::modifyExpAttenuation(QString s)
+{
+	expAtt = s.toFloat();
 }
 
 void GLWidget::modifyBoundingBoxScale(QString s)

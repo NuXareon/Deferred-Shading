@@ -52,26 +52,27 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	renderMenu->addAction(allRenderAct);
 
 	// Validators
-	QDoubleValidator *doubleValidator = new QDoubleValidator(0.01,10.0,2);
-	doubleValidator->setNotation(QDoubleValidator::StandardNotation);
-	QDoubleValidator *doubleValidator2 = new QDoubleValidator(0.01,10000.0,2);
+	QDoubleValidator *_doubleValidator = new QDoubleValidator(0.01,10.0,2);
+	_doubleValidator->setNotation(QDoubleValidator::StandardNotation);
+	QDoubleValidator *doubleValidator = new QDoubleValidator(0.01,10000.0,2);
 	doubleValidator->setNotation(QDoubleValidator::StandardNotation);
 
 	QIntValidator *intValidator = new QIntValidator(0,N_MAX_LIGHTS);
+	QIntValidator *intValidator2 = new QIntValidator(0,4096);
 
 	// Separators
 	QFrame *line = new QFrame();
 	line->setFrameShape(QFrame::VLine);
-
 	QFrame *line2 = new QFrame();
 	line2->setFrameShape(QFrame::VLine);
-
 	QFrame *line3 = new QFrame();
 	line3->setFrameShape(QFrame::VLine);
+	QFrame *line4 = new QFrame();
+	line4->setFrameShape(QFrame::VLine);
 
 	// Camera Sensitivity
 	QLabel *sensibilityLabel = new QLabel();
-	sensibilityLabel->setText("Camera sensitivity: ");
+	sensibilityLabel->setText("Sensitivity: ");
 
 	QLineEdit *cameraSensitivityIn = new QLineEdit();
 	cameraSensitivityIn->setValidator(doubleValidator);
@@ -79,7 +80,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 
 	// Camera Speed
 	QLabel *speedLabel = new QLabel();
-	speedLabel->setText("Camera speed: ");
+	speedLabel->setText("Speed: ");
 
 	QLineEdit *cameraSpeedIn = new QLineEdit();
 	cameraSpeedIn->setValidator(doubleValidator);
@@ -90,8 +91,23 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	thresholdLabel->setText("Threshold (Deferred only): ");
 
 	QLineEdit *thresholdIn = new QLineEdit();
-	thresholdIn->setValidator(intValidator);
+	thresholdIn->setValidator(intValidator2);
 	thresholdIn->setText("256");
+
+	QLabel *attenuationLabel = new QLabel();
+	attenuationLabel->setText("Attenuation: ");
+
+	QLineEdit *constantAttIn = new QLineEdit();
+	constantAttIn->setValidator(doubleValidator);
+	constantAttIn->setText("1.0");
+
+	QLineEdit *linearAttIn = new QLineEdit();
+	linearAttIn->setValidator(doubleValidator);
+	linearAttIn->setText("60.0");
+
+	QLineEdit *expAttIn = new QLineEdit();
+	expAttIn->setValidator(doubleValidator);
+	expAttIn->setText("0.0");
 
 	// Lights
 	QLabel *lightingLabel = new QLabel();
@@ -99,7 +115,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 
 	// Light bounding box scale
 	QLabel *lightBBScaleLabel = new QLabel();
-	lightBBScaleLabel->setText("Bounding box scale: ");
+	lightBBScaleLabel->setText("Bb scale: ");
 
 	QLineEdit *lighBBScaleIn = new QLineEdit();
 	lighBBScaleIn->setValidator(doubleValidator);
@@ -110,7 +126,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	lightIntesityLabel->setText("Intensity: ");
 
 	QLineEdit *lighIntensityIn = new QLineEdit();
-	lighIntensityIn->setValidator(doubleValidator2);
+	lighIntensityIn->setValidator(doubleValidator);
 	lighIntensityIn->setText("1.0");
 
 	// Number of lights
@@ -166,7 +182,10 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	connect(glWidget, SIGNAL(updateLightIntensityIn(QString)), lighIntensityIn, SLOT(setText(QString)));
 	connect(glWidget, SIGNAL(updateRenderMode(QString)), renderModeLabel, SLOT(setText(QString)));
 	connect(thresholdIn, SIGNAL(textChanged(QString)), glWidget, SLOT(modifyThreshold(QString)));
-	
+	connect(constantAttIn, SIGNAL(textChanged(QString)), glWidget, SLOT(modifyConstantAttenuation(QString)));
+	connect(linearAttIn, SIGNAL(textChanged(QString)), glWidget, SLOT(modifyLinearAttenuation(QString)));
+	connect(expAttIn, SIGNAL(textChanged(QString)), glWidget, SLOT(modifyExpAttenuation(QString)));
+
 	// Set layout content
     mainLayout->addWidget(glWidget);
 
@@ -174,20 +193,24 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	thirdLayout->addWidget(cameraSensitivityIn);
 	thirdLayout->addWidget(speedLabel);
 	thirdLayout->addWidget(cameraSpeedIn);
+	thirdLayout->addWidget(line);
 	thirdLayout->addWidget(thresholdLabel);
 	thirdLayout->addWidget(thresholdIn);
-	thirdLayout->addWidget(line);
-	//thirdLayout->addWidget(lightingLabel);
+	thirdLayout->addWidget(line2);
 	thirdLayout->addWidget(lightBBScaleLabel);
 	thirdLayout->addWidget(lighBBScaleIn);
+	thirdLayout->addWidget(attenuationLabel);
+	thirdLayout->addWidget(constantAttIn);
+	thirdLayout->addWidget(linearAttIn);
+	thirdLayout->addWidget(expAttIn);
 	thirdLayout->addWidget(lightIntesityLabel);
 	thirdLayout->addWidget(lighIntensityIn);
 	thirdLayout->addWidget(nLightsLabel);
 	thirdLayout->addWidget(nLightsIn);
 	thirdLayout->addWidget(genLightsButton);
-	thirdLayout->addWidget(line2);
-	thirdLayout->addWidget(renderModeLabel);
 	thirdLayout->addWidget(line3);
+	thirdLayout->addWidget(renderModeLabel);
+	thirdLayout->addWidget(line4);
 	thirdLayout->addWidget(fpsLabel);
 	thirdLayout->addWidget(fpsLabelNum);
 
