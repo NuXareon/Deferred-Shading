@@ -132,10 +132,16 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	// Number of lights
 	QLabel *nLightsLabel = new QLabel();
 	nLightsLabel->setText("N: ");
-
 	std::stringstream sstm;
 	sstm << INITIAL_LIGHTS;
-	nLights = QString::fromStdString(sstm.str());
+	std::string s = sstm.str();
+	// QString::fromStdString desnt work on release
+#ifdef NDEBUG
+	nLights = "20";
+#else
+	nLights = QString::fromStdString(s);
+#endif
+	
 	QLineEdit *nLightsIn = new QLineEdit();
 	nLightsIn->setValidator(intValidator);
 	nLightsIn->setText(nLights);

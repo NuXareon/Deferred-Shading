@@ -16,7 +16,7 @@
 #endif
 
 #define INVALID_BUFFER -		1
-#define N_MAX_LIGHTS			100
+#define N_MAX_LIGHTS			2000
 #define	INITIAL_LIGHTS			20
 #define	GBUFFER_DEFAULT			0
 #define GBUFFER_READ			1

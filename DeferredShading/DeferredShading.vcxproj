@@ -45,7 +45,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>UNICODE;WIN32;QT_DLL;QT_CORE_LIB;QT_GUI_LIB;QT_OPENGL_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\NuXe\Documents\GitHub\Deferred-Shading\DeferredShading\glew-1.11.0\include\GL;C:\Users\NuXe\Documents\GitHub\Deferred-Shading\DeferredShading\GLExtensions\Include;$(SolutionDir)$(SolutionName)\Assimp\include\assimp;$(SolutionDir)$(SolutionName)\ImageMagick\include;.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtOpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)$(SolutionName)\glew-1.11.0\include\GL;$(SolutionDir)$(SolutionName)\GLExtensions\Include;$(SolutionDir)$(SolutionName)\Assimp\include\assimp;$(SolutionDir)$(SolutionName)\ImageMagick\include;.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtOpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -55,7 +55,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
-      <AdditionalLibraryDirectories>C:\Users\NuXe\Documents\GitHub\Deferred-Shading\DeferredShading\glew-1.11.0\lib\Release\Win32;$(SolutionDir)$(SolutionName)\Assimp\lib\x86;$(SolutionDir)$(SolutionName)\ImageMagick\debug\lib;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(SolutionName)\glew-1.11.0\lib\Release\Win32;$(SolutionDir)$(SolutionName)\Assimp\lib\x86;$(SolutionDir)$(SolutionName)\ImageMagick\debug\lib;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>glew32.lib;assimp.lib;qtmaind.lib;QtCored4.lib;QtGuid4.lib;QtOpenGLd4.lib;opengl32.lib;glu32.lib;CORE_DB_magick_.lib;CORE_DB_Magick++_.lib;CORE_DB_wand_.lib;X11.lib</AdditionalDependencies>
     </Link>
@@ -69,7 +69,7 @@ copy /Y "$(SolutionDir)DeferredShading\glew-1.11.0\bin\Release\Win32\*.dll" "$(O
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>UNICODE;WIN32;QT_DLL;QT_NO_DEBUG;NDEBUG;QT_CORE_LIB;QT_GUI_LIB;QT_OPENGL_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)$(SolutionName)\ImageMagick\include;$(SolutionDir)$(SolutionName)\Assimp\include\assimp;.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtOpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)$(SolutionName)\glew-1.11.0\include\GL;$(SolutionDir)$(SolutionName)\GLExtensions\Include;$(SolutionDir)$(SolutionName)\ImageMagick\include;$(SolutionDir)$(SolutionName)\Assimp\include\assimp;.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtOpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>
       </DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -79,13 +79,14 @@ copy /Y "$(SolutionDir)DeferredShading\glew-1.11.0\bin\Release\Win32\*.dll" "$(O
     <Link>
       <SubSystem>Windows</SubSystem>
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(SolutionName)\ImageMagick\release\lib;$(SolutionDir)$(SolutionName)\Assimp\lib\x86;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(SolutionName)\glew-1.11.0\lib\Release\Win32;$(SolutionDir)$(SolutionName)\ImageMagick\release\lib;$(SolutionDir)$(SolutionName)\Assimp\lib\x86;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalDependencies>assimp.lib;qtmain.lib;QtCored4.lib;QtGuid4.lib;QtOpenGLd4.lib;opengl32.lib;glu32.lib;CORE_RL_magick_.lib;CORE_RL_Magick++_.lib;CORE_RL_wand_.lib;X11.lib</AdditionalDependencies>
+      <AdditionalDependencies>glew32.lib;assimp.lib;qtmain.lib;QtCored4.lib;QtGuid4.lib;QtOpenGLd4.lib;opengl32.lib;glu32.lib;CORE_RL_magick_.lib;CORE_RL_Magick++_.lib;CORE_RL_wand_.lib;X11.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(SolutionDir)DeferredShading\Assimp\bin\x86\*.dll" "$(OutDir)"
-copy /Y "$(SolutionDir)DeferredShading\ImageMagick\release\bin\*.dll" "$(OutDir)"</Command>
+copy /Y "$(SolutionDir)DeferredShading\ImageMagick\release\bin\*.dll" "$(OutDir)"
+copy /Y "$(SolutionDir)DeferredShading\glew-1.11.0\bin\Release\Win32\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -120,11 +121,11 @@ copy /Y "$(SolutionDir)DeferredShading\ImageMagick\release\bin\*.dll" "$(OutDir)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Moc%27ing deferredshading.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUNICODE -DWIN32 -DQT_DLL -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB  "-IC:\Users\NuXe\Documents\GitHub\Deferred-Shading\DeferredShading\glew-1.11.0\include\GL" "-IC:\Users\NuXe\Documents\GitHub\Deferred-Shading\DeferredShading\GLExtensions\Include" "-I$(SolutionDir)$(SolutionName)\Assimp\include\assimp" "-I$(SolutionDir)$(SolutionName)\ImageMagick\include" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUNICODE -DWIN32 -DQT_DLL -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB  "-I$(SolutionDir)$(SolutionName)\glew-1.11.0\include\GL" "-I$(SolutionDir)$(SolutionName)\GLExtensions\Include" "-I$(SolutionDir)$(SolutionName)\Assimp\include\assimp" "-I$(SolutionDir)$(SolutionName)\ImageMagick\include" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL"</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Moc%27ing deferredshading.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUNICODE -DWIN32 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB  "-I$(SolutionDir)$(SolutionName)\ImageMagick\include" "-I$(SolutionDir)$(SolutionName)\Assimp\include\assimp" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUNICODE -DWIN32 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB  "-I$(SolutionDir)$(SolutionName)\glew-1.11.0\include\GL" "-I$(SolutionDir)$(SolutionName)\GLExtensions\Include" "-I$(SolutionDir)$(SolutionName)\ImageMagick\include" "-I$(SolutionDir)$(SolutionName)\Assimp\include\assimp" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL"</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
@@ -150,11 +151,11 @@ copy /Y "$(SolutionDir)DeferredShading\ImageMagick\release\bin\*.dll" "$(OutDir)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Moc%27ing glwidget.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUNICODE -DWIN32 -DQT_DLL -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB  "-IC:\Users\NuXe\Documents\GitHub\Deferred-Shading\DeferredShading\glew-1.11.0\include\GL" "-IC:\Users\NuXe\Documents\GitHub\Deferred-Shading\DeferredShading\GLExtensions\Include" "-I$(SolutionDir)$(SolutionName)\Assimp\include\assimp" "-I$(SolutionDir)$(SolutionName)\ImageMagick\include" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUNICODE -DWIN32 -DQT_DLL -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB  "-I$(SolutionDir)$(SolutionName)\glew-1.11.0\include\GL" "-I$(SolutionDir)$(SolutionName)\GLExtensions\Include" "-I$(SolutionDir)$(SolutionName)\Assimp\include\assimp" "-I$(SolutionDir)$(SolutionName)\ImageMagick\include" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL"</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Moc%27ing glwidget.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUNICODE -DWIN32 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB  "-I$(SolutionDir)$(SolutionName)\ImageMagick\include" "-I$(SolutionDir)$(SolutionName)\Assimp\include\assimp" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUNICODE -DWIN32 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB  "-I$(SolutionDir)$(SolutionName)\glew-1.11.0\include\GL" "-I$(SolutionDir)$(SolutionName)\GLExtensions\Include" "-I$(SolutionDir)$(SolutionName)\ImageMagick\include" "-I$(SolutionDir)$(SolutionName)\Assimp\include\assimp" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL"</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

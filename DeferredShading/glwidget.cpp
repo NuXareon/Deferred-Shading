@@ -157,6 +157,7 @@ void GLWidget::initializeShaderProgram(const char *vsP, const char *fsP, GLuint 
 
 void GLWidget::initLocations()
 {
+	// Forward Shaders
     positionLocation = glGetAttribLocation(shaderProgram,"position");
 	texCoordLocation = glGetAttribLocation(shaderProgram,"texCoord");
 	normLocation = glGetAttribLocation(shaderProgram,"norm");
@@ -166,19 +167,19 @@ void GLWidget::initLocations()
 	directionalColorLocation = glGetUniformLocation(shaderProgram,"dLight.color");
 	directionalIntensityLocation = glGetUniformLocation(shaderProgram,"dLight.intensity");
 	directionalDirectionLocation = glGetUniformLocation(shaderProgram,"dLight.direction");
-
+	// Deferred Debug Shaders
 	positionDeferredDebugLocation = glGetAttribLocation(shaderProgramDeferredDebug,"position");
 	texCoordDeferredDebugLocation = glGetAttribLocation(shaderProgramDeferredDebug,"texCoord");
 	normDeferredDebugLocation = glGetAttribLocation(shaderProgramDeferredDebug,"norm");
 	samplerDeferredDebugLocation = glGetUniformLocation(shaderProgramDeferredDebug,"sampler");
 	minPDeferredDebugLocation = glGetUniformLocation(shaderProgramDeferredDebug,"minP");
 	maxPDeferredDebugLocation = glGetUniformLocation(shaderProgramDeferredDebug,"maxP");
-
+	// Deferred Geometry Shaders
 	positionDeferredGeoLocation = glGetAttribLocation(shaderProgramDeferredGeo,"position");
 	texCoordDeferredGeoLocation = glGetAttribLocation(shaderProgramDeferredGeo,"texCoord");
 	normDeferredGeoLocation = glGetAttribLocation(shaderProgramDeferredGeo,"norm");
 	samplerDeferredGeoLocation = glGetUniformLocation(shaderProgramDeferredGeo,"sampler");
-
+	//	Deferred Lighting Shaders
 	screenSizeDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"screenSize");
 	positionBufferDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"positionBuffer");
 	normalBufferDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"normalBuffer");
@@ -187,7 +188,8 @@ void GLWidget::initLocations()
 	pLightIntensityDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"pLight.intensity");
 	pLightPositionDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"pLight.position");
 	pLightAttenuationDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"pLight.attenuation");
-
+	pLightRadiusDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"pLight.radius");
+	// Forward Point Lights
 	std::stringstream sstm;
 	std::string uniformName;
 	std::string pl_str = "pointLights[";
@@ -371,6 +373,8 @@ void GLWidget::paintGL()
 
 		//Draw Geometry
 		mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
+		//glUseProgram(0);
+		//for (unsigned int i = 0; i < nLights; i++) drawLightBillboard(pointLightsArr[i]);
 	} 
 	else if (renderMode == RENDER_DEFERRED){
 		// Set Mode
@@ -439,9 +443,18 @@ void GLWidget::drawPointLight(pointLight l)
 	glUniform3f(pLightPositionDeferredLightLocation, l.position.x, l.position.y, l.position.z);
 	glUniform3f(pLightAttenuationDeferredLightLocation, l.attenuation.constant, l.attenuation.linear, l.attenuation.exp);
 	float r = utils::calcLightRadius(l, threshold);
+	glUniform1f(pLightRadiusDeferredLightLocation, r);
 	glPushMatrix();
 	glTranslatef(l.position.x, l.position.y, l.position.z);
 	utils::drawSphere(r,16,16);
+	glPopMatrix();
+}
+
+void GLWidget::drawLightBillboard(pointLight l)
+{
+	glPushMatrix();
+	glTranslatef(l.position.x, l.position.y, l.position.z);
+	utils::drawSphere(0.1f,16,16);
 	glPopMatrix();
 }
 

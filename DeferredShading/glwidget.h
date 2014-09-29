@@ -103,6 +103,7 @@ private:
 	GLuint pLightIntensityDeferredLightLocation;
 	GLuint pLightPositionDeferredLightLocation;
 	GLuint pLightAttenuationDeferredLightLocation;
+	GLuint pLightRadiusDeferredLightLocation;
 
 	GLuint ambientColorLocation;
 	GLuint ambientIntensityLocation;
@@ -137,4 +138,5 @@ private:
 	void setLightUniforms();							// Sends lightning information to the shaders.
 	void setLightPassUniforms();						// Sends gBuffer infor to the shaders
 	void drawPointLight(pointLight l);					// Draws a sphere equivalent to a point light
+	void drawLightBillboard(pointLight l);				// Draws a billboard for a point light
 };
