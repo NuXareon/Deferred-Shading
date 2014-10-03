@@ -74,6 +74,9 @@
     <ClCompile Include="gbuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="depthBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="deferredshading.h">
@@ -105,6 +108,9 @@
     <ClInclude Include="gbuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="depthBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="forward_shader.fs">
@@ -123,6 +129,12 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="deferred_shader_light.fs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="forward_shader_depth_debug.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="forward_shader_depth_debug.fs">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

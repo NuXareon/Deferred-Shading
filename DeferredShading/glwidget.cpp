@@ -8,6 +8,8 @@ const char* VSPathDeferredDebug = "forward_shader.vs";
 const char* FSPathDeferredDebug = "deferred_shader_debug.fs";
 const char* VSPathDeferredLight = "deferred_shader_light.vs";
 const char* FSPathDeferredLight = "deferred_shader_light.fs";
+const char* VSPathForwardDepthDebug = "forward_shader_depth_debug.vs";
+const char* FSPathForwardDepthDebug = "forward_shader_depth_debug.fs";
 
 GLWidget::GLWidget(QWidget *parent) :
     QGLWidget()
@@ -31,11 +33,16 @@ GLWidget::GLWidget(QWidget *parent) :
 	constAtt = ATTENUATION_CONSTANT;
 	linearAtt = ATTENUATION_LINEAR;
 	expAtt = ATTENUATION_EXP;
+	lBillboards = false;
 	// Timers
 	inputTimerId = startTimer(1000/60);			// Camera refresh rate (60 FPS)
 	drawTimerId = startTimer(0);				// Render refresh rate. V-SYNC MUST BE TURNED OFF.
 	// Render
 	renderMode = RENDER_FORWARD;
+	// Buffers
+	gBufferDS = new gbuffer;
+	dBufferFR = new depthBuffer;
+
 }
 
 GLWidget::~GLWidget()
@@ -85,6 +92,12 @@ void GLWidget::setAllRenderMode()
 {
 	renderMode = RENDER_ALL;
 	emit updateRenderMode("All");
+}
+
+void GLWidget::setDepthRenderMode()
+{
+	renderMode = RENDER_DEPTH;
+	emit updateRenderMode("Depth");
 }
 
 void GLWidget::setDeferredRenderMode()	
@@ -167,6 +180,7 @@ void GLWidget::initLocations()
 	directionalColorLocation = glGetUniformLocation(shaderProgram,"dLight.color");
 	directionalIntensityLocation = glGetUniformLocation(shaderProgram,"dLight.intensity");
 	directionalDirectionLocation = glGetUniformLocation(shaderProgram,"dLight.direction");
+	depthDebugTextureLocation = glGetUniformLocation(shaderProgramForwardDepthDebug,"texture");
 	// Deferred Debug Shaders
 	positionDeferredDebugLocation = glGetAttribLocation(shaderProgramDeferredDebug,"position");
 	texCoordDeferredDebugLocation = glGetAttribLocation(shaderProgramDeferredDebug,"texCoord");
@@ -261,9 +275,9 @@ void GLWidget::initializeGL()
 	utils::enableVSyncLinux(0);
 	#endif
 
-	gBufferDS = new gbuffer;
-
 	loadModel(modelPath);
+	lightBillboard = new Texture(GL_TEXTURE_2D, "../DeferredShading/billboard.png");
+	lightBillboard->Load();
 
     //glShadeModel(GL_SMOOTH);
 	//initializeLightingGL();
@@ -273,6 +287,7 @@ void GLWidget::initializeGL()
 	initializeShaderProgram(VSPathDeferredGeo, FSPathDeferredGeo, &shaderProgramDeferredGeo);
 	initializeShaderProgram(VSPathDeferredLight, FSPathDeferredLight, &shaderProgramDeferredLight);
 	initializeShaderProgram(VSPathDeferredDebug, FSPathDeferredDebug, &shaderProgramDeferredDebug);
+	initializeShaderProgram(VSPathForwardDepthDebug, FSPathForwardDepthDebug, &shaderProgramForwardDepthDebug);
 	initLocations();
 	
 	frames = 0;
@@ -290,6 +305,7 @@ void GLWidget::resizeGL(int width, int height)
     glMatrixMode(GL_MODELVIEW);
 
 	gBufferDS->init(width, height);
+	dBufferFR->init(width, height);
 }
 
 void GLWidget::setLightUniforms()
@@ -358,23 +374,25 @@ void GLWidget::paintGL()
 	gluLookAt(	xPos, yPos, zPos,
 				xPos+cos(betaRad)*cos(alphaRad), yPos+sin(betaRad), zPos-cos(betaRad)*sin(alphaRad),
 				0.0f, 1.0f, 0.0f);
-
 	//drawAxis();
 
 	if (renderMode == RENDER_FORWARD){
 		// Set mode
-		glUseProgram(shaderProgram);
-		setLightUniforms();
-
 		gBufferDS->bind(GBUFFER_DEFAULT);
 		glDepthMask(GL_TRUE);
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		glUseProgram(shaderProgram);
+		setLightUniforms();
 		//Draw Geometry
 		mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
-		//glUseProgram(0);
-		//for (unsigned int i = 0; i < nLights; i++) drawLightBillboard(pointLightsArr[i]);
+
+		//Draw ligh billboards
+		if (lBillboards) {
+			glUseProgram(0);
+			for (unsigned int i = 0; i < nLights; i++) drawLightBillboard(pointLightsArr[i], 0.15f);
+		}
 	} 
 	else if (renderMode == RENDER_DEFERRED){
 		// Set Mode
@@ -404,11 +422,14 @@ void GLWidget::paintGL()
 		
 		// Draw Lights
 		for (unsigned int i = 0; i < nLights; i++) drawPointLight(pointLightsArr[i]);
-
+		
 		glDisable(GL_BLEND);
 		glEnable(GL_DEPTH_TEST);
 	}
-	else if (renderMode >= 0 && renderMode < RENDER_FORWARD) {
+	else if (renderMode == RENDER_DEPTH) {
+		DrawDepthPrepass();
+	}
+	else if (renderMode >= RENDER_POSITION && renderMode <= RENDER_ALL) {
 		// Set Mode
 		glUseProgram(shaderProgramDeferredDebug);
 		gBufferDS->bind(GBUFFER_DRAW);
@@ -426,12 +447,14 @@ void GLWidget::paintGL()
 		// Copy G-buffer to main framebuffer
 		gBufferDS->bind(GBUFFER_DEFAULT);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		
 		gBufferDS->bind(GBUFFER_READ);
 		if (renderMode == RENDER_ALL) renderAll(width(),height());
 		else {
 			glReadBuffer(GL_COLOR_ATTACHMENT0+renderMode);
 			glBlitFramebuffer(0, 0, width(), height(), 0, 0, width(), height(), GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		}
+		
 	}
 	updateFPS();
 }
@@ -450,12 +473,81 @@ void GLWidget::drawPointLight(pointLight l)
 	glPopMatrix();
 }
 
-void GLWidget::drawLightBillboard(pointLight l)
+void GLWidget::drawLightBillboard(pointLight l, float w)
 {
+	glm::vec3 n = glm::vec3(xPos-l.position.x, yPos-l.position.y, zPos-l.position.z);
+	n = glm::normalize(n);
+
+	float gl_ModelViewMatrix[16];
+	glGetFloatv(GL_MODELVIEW_MATRIX, gl_ModelViewMatrix);
+	glm::vec3 u;
+	if ((glm::abs(n.y) > glm::abs(n.x)) && (glm::abs(n.y) > glm::abs(n.z))) {
+		glm::mat4 m = glm::mat4(gl_ModelViewMatrix[0],gl_ModelViewMatrix[1],gl_ModelViewMatrix[2],gl_ModelViewMatrix[3],gl_ModelViewMatrix[4],gl_ModelViewMatrix[5],gl_ModelViewMatrix[6],gl_ModelViewMatrix[7],gl_ModelViewMatrix[8],gl_ModelViewMatrix[9],gl_ModelViewMatrix[10],gl_ModelViewMatrix[11],gl_ModelViewMatrix[12],gl_ModelViewMatrix[13],gl_ModelViewMatrix[14],gl_ModelViewMatrix[15]);
+		glm::mat4 gl_ModelViewMatrixInverse = glm::inverse(m);
+		glm::vec4 ox = gl_ModelViewMatrixInverse*glm::vec4(1.0,0.0,0.0,1.0);
+		u = glm::cross(n,ox.xyz());
+	}
+	else {
+		u = glm::cross(glm::vec3(0.0,1.0,0.0),n);
+	}
+	u = glm::normalize(u);
+
+	glm::vec3 v = glm::cross(n,u);
+	v = glm::normalize(v);
+
+	glEnable(GL_TEXTURE_2D);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	lightBillboard->Bind(GL_TEXTURE0);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glColor3f(l.color.r,l.color.g,l.color.b);
+
 	glPushMatrix();
 	glTranslatef(l.position.x, l.position.y, l.position.z);
-	utils::drawSphere(0.1f,16,16);
+	glBegin(GL_QUADS);
+	glTexCoord2f(0,1);
+	glm::vec3 p = (w/2)*u+(w/2)*v;
+	glVertex3f(p.x,p.y,p.z);
+	p = -(w/2)*u+(w/2)*v;
+	glTexCoord2f(0,0);
+	glVertex3f(p.x,p.y,p.z);
+	p = -(w/2)*u-(w/2)*v;
+	glTexCoord2f(1,0);
+	glVertex3f(p.x,p.y,p.z);
+	p = (w/2)*u-(w/2)*v;
+	glTexCoord2f(1,1);
+	glVertex3f(p.x,p.y,p.z);
+	glEnd();
 	glPopMatrix();
+
+	glDisable(GL_TEXTURE_2D);
+	glDisable(GL_BLEND);	
+}
+
+void GLWidget::DrawDepthPrepass()
+{
+		glUseProgram(0);
+		dBufferFR->bind();
+
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		mainMesh->simpleRender();
+
+		dBufferFR->unBind();
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glUseProgram(shaderProgramForwardDepthDebug);
+
+		dBufferFR->bindTex();
+		glUniform1i(depthDebugTextureLocation, 0);
+
+		glBegin(GL_TRIANGLE_STRIP);
+		glVertex2f(-1.0f,-1.0f);
+		glVertex2f(1.0f,-1.0f);
+		glVertex2f(-1.0f,1.0f);
+		glVertex2f(1.0f,1.0f);
+		glEnd();
 }
 
 void GLWidget::updateFPS()
@@ -538,6 +630,12 @@ void GLWidget::modifyExpAttenuation(QString s)
 void GLWidget::modifyBoundingBoxScale(QString s)
 {
 	lightingBoundingBoxScale = s.toFloat();
+}
+
+void GLWidget::enableBillboards(int s)
+{
+	if (s == Qt::Unchecked) lBillboards = false;
+	else if (s == Qt::Checked) lBillboards = true;
 }
 
 void GLWidget::timerEvent(QTimerEvent* e)

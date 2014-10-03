@@ -12,6 +12,7 @@ public:
 
     bool LoadMesh(const std::string& Filename);
     void Render(GLuint pLoc, GLuint tcLoc, GLuint nLoc, GLuint sLoc);
+	void simpleRender();
 	BoundingBox getBoundingBox();
 
 private:

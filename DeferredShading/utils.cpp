@@ -100,6 +100,6 @@ void utils::drawSphere(double r, int lats, int longs) {
 
 float utils::calcLightRadius(pointLight l, float threshold)
 {
-	if (l.attenuation.exp == 0.0f) return (threshold*l.intensity*max(max(l.color.r,l.color.g),l.color.b)-l.attenuation.constant)/l.attenuation.linear;
-	else return (sqrt(-4*l.attenuation.constant*l.attenuation.exp+l.attenuation.linear*l.attenuation.linear+4*l.attenuation.exp*threshold*l.intensity*max(max(l.color.r,l.color.g),l.color.b))-l.attenuation.linear)/(2*l.attenuation.exp);
+	if (l.attenuation.exp == 0.0f) return (threshold*l.intensity*glm::max(glm::max(l.color.r,l.color.g),l.color.b)-l.attenuation.constant)/l.attenuation.linear;
+	else return (sqrt(-4*l.attenuation.constant*l.attenuation.exp+l.attenuation.linear*l.attenuation.linear+4*l.attenuation.exp*threshold*l.intensity*glm::max(glm::max(l.color.r,l.color.g),l.color.b))-l.attenuation.linear)/(2*l.attenuation.exp);
 }

@@ -173,6 +173,23 @@ void Mesh::Render(GLuint pLoc, GLuint tcLoc, GLuint nLoc, GLuint sLoc)
 	glDisableVertexAttribArray(nLoc);
 }
 
+void Mesh::simpleRender()
+{
+	glEnableVertexAttribArray(0);
+
+	for (unsigned int i = 0; i < m_Entries.size(); ++i)
+	{
+		glBindBuffer(GL_ARRAY_BUFFER,m_Entries[i].VB);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),0);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_Entries[i].IB);
+
+		glDrawElements(GL_TRIANGLES, m_Entries[i].NumIndices, GL_UNSIGNED_INT, 0);
+	}
+
+	glDisableVertexAttribArray(0);
+}
+
 BoundingBox Mesh::getBoundingBox()
 {
 	return bb;

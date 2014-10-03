@@ -1,5 +1,6 @@
 #include "mesh.h"
 #include "gbuffer.h"
+#include "depthBuffer.h"
 #include "utils.h"
 
 class GLWidget : public QGLWidget
@@ -24,12 +25,14 @@ public slots:
 	void modifyConstantAttenuation(QString s);
 	void modifyLinearAttenuation(QString s);
 	void modifyExpAttenuation(QString s);
+	void enableBillboards(int s);
 	// Render
 	void setForwardRenderMode();
 	void setPositionRenderMode();
 	void setNormalRenderMode();
 	void setDiffuseRenderMode();
 	void setAllRenderMode();
+	void setDepthRenderMode();
 	void setDeferredRenderMode();
 	// Misc.
 	void loadModel(std::string path);					// Loads a model located on path.
@@ -68,6 +71,7 @@ private:
 	GLuint shaderProgramDeferredGeo;
 	GLuint shaderProgramDeferredLight;
 	GLuint shaderProgramDeferredDebug;
+	GLuint shaderProgramForwardDepthDebug;
 
 	renderModeType renderMode;
 
@@ -75,6 +79,7 @@ private:
 	GLuint texCoordLocation;
 	GLuint normLocation;
 	GLuint samplerLocation;
+	GLuint depthDebugTextureLocation;
 
 	GLuint positionDeferredLocation;
 	GLuint texCoordDeferredLocation;
@@ -126,8 +131,11 @@ private:
 	float maxIntensity;
 	int threshold;
 	float constAtt, linearAtt, expAtt;
-	// Deferred
+	Texture* lightBillboard;
+	bool lBillboards;
+	// Buffers
 	gbuffer *gBufferDS;									// G-buffer: framebuffer with the textures we will use for deferred shading
+	depthBuffer *dBufferFR;								// Depth Buffer: framebuffer used for the depth prepass in the forward reder
 	// Functions
 	void initializeLighting();							// Initializes nLights point lights with pseudo-random attributes.
 	void initializeShaders();							// Reads and compiles the vertex and fragment shader.
@@ -138,5 +146,6 @@ private:
 	void setLightUniforms();							// Sends lightning information to the shaders.
 	void setLightPassUniforms();						// Sends gBuffer infor to the shaders
 	void drawPointLight(pointLight l);					// Draws a sphere equivalent to a point light
-	void drawLightBillboard(pointLight l);				// Draws a billboard for a point light
+	void drawLightBillboard(pointLight l, float width);	// Draws a billboard for a point light
+	void DrawDepthPrepass();
 };

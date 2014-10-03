@@ -1,4 +1,5 @@
 #pragma once
+#define GLM_SWIZZLE
 #include <glew.h>
 #include <fstream>
 #include <iostream>
@@ -8,6 +9,7 @@
 #include <qevent.h>
 #include <QGLWidget>
 #include <QTime>
+#include "glm.hpp"
 #include "glext.h"
 #ifdef _WIN32
 #include "wglext.h"
@@ -26,6 +28,8 @@
 #define ATTENUATION_CONSTANT	1.0
 #define ATTENUATION_LINEAR		60.0
 #define ATTENUATION_EXP			0.0
+
+enum renderModeType {RENDER_POSITION, RENDER_NORMAL, RENDER_DIFFUSE, RENDER_ALL, RENDER_FORWARD, RENDER_DEPTH, RENDER_DEFERRED};
 
 // Vector structs
 struct Vector3f
@@ -138,8 +142,6 @@ struct pointLight{
 		attenuation.constant = a[0]; attenuation.linear = a[1]; attenuation.exp = a[2];
 	}
 };
-
-enum renderModeType {RENDER_POSITION, RENDER_NORMAL, RENDER_DIFFUSE, RENDER_ALL, RENDER_FORWARD, RENDER_DEFERRED};
 
 class utils
 {

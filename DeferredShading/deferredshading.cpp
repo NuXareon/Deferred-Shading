@@ -43,6 +43,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	QAction *diffuseRenderAct = new QAction(tr("&Diffuse"), this);
 	QAction *normalRenderAct = new QAction(tr("&Normal"), this);
 	QAction *allRenderAct = new QAction(tr("&All"), this);
+	QAction *depthRenderAct = new QAction(tr("&Depth"), this);
 	renderMenu->addAction(forwardRenderAct);
 	renderMenu->addAction(deferredRenderAct);
 	renderMenu->addSeparator();
@@ -50,6 +51,8 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	renderMenu->addAction(diffuseRenderAct);
 	renderMenu->addAction(normalRenderAct);
 	renderMenu->addAction(allRenderAct);
+	renderMenu->addSeparator();
+	renderMenu->addAction(depthRenderAct);
 
 	// Validators
 	QDoubleValidator *_doubleValidator = new QDoubleValidator(0.01,10.0,2);
@@ -94,6 +97,23 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	thresholdIn->setValidator(intValidator2);
 	thresholdIn->setText("256");
 
+	// Billboards
+	//QLabel *billboardsLabel = new QLabel();
+	//billboardsLabel->setText("Billboards: ");
+
+	QCheckBox *billboardsCheckBox = new QCheckBox("Billboards:");
+	billboardsCheckBox->setLayoutDirection(Qt::RightToLeft);
+	billboardsCheckBox->setChecked(false);
+
+	// Light bounding box scale
+	QLabel *lightBBScaleLabel = new QLabel();
+	lightBBScaleLabel->setText(" Bb scale: ");
+
+	QLineEdit *lighBBScaleIn = new QLineEdit();
+	lighBBScaleIn->setValidator(doubleValidator);
+	lighBBScaleIn->setText("1.0");
+
+	// Attenuation
 	QLabel *attenuationLabel = new QLabel();
 	attenuationLabel->setText("Attenuation: ");
 
@@ -108,18 +128,6 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	QLineEdit *expAttIn = new QLineEdit();
 	expAttIn->setValidator(doubleValidator);
 	expAttIn->setText("0.0");
-
-	// Lights
-	QLabel *lightingLabel = new QLabel();
-	lightingLabel->setText("Lighting-> ");
-
-	// Light bounding box scale
-	QLabel *lightBBScaleLabel = new QLabel();
-	lightBBScaleLabel->setText("Bb scale: ");
-
-	QLineEdit *lighBBScaleIn = new QLineEdit();
-	lighBBScaleIn->setValidator(doubleValidator);
-	lighBBScaleIn->setText("1.0");
 
 	// Light intensity
 	QLabel *lightIntesityLabel = new QLabel();
@@ -175,6 +183,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	connect(diffuseRenderAct,SIGNAL(triggered()), glWidget, SLOT(setDiffuseRenderMode()));
 	connect(normalRenderAct,SIGNAL(triggered()), glWidget, SLOT(setNormalRenderMode()));
 	connect(allRenderAct,SIGNAL(triggered()), glWidget, SLOT(setAllRenderMode()));
+	connect(depthRenderAct,SIGNAL(triggered()), glWidget, SLOT(setDepthRenderMode()));
 	connect(this,SIGNAL(keyPressed(int)), glWidget, SLOT(addKey(int)));
 	connect(this,SIGNAL(keyReleased(int)), glWidget, SLOT(removeKey(int)));
 	connect(cameraSensitivityIn,SIGNAL(textChanged(QString)),glWidget,SLOT(modifyCameraSensitivity(QString)));
@@ -183,6 +192,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	connect(nLightsIn,SIGNAL(textChanged(QString)),this,SLOT(modifyNLights(QString)));
 	connect(genLightsButton, SIGNAL(clicked()), this, SLOT(genLights()));
 	connect(this, SIGNAL(glGenLights(int)), glWidget, SLOT(genLightning(int)));
+	connect(billboardsCheckBox, SIGNAL(stateChanged(int)), glWidget, SLOT(enableBillboards(int)));
 	connect(lighBBScaleIn, SIGNAL(textChanged(QString)), glWidget, SLOT(modifyBoundingBoxScale(QString)));
 	connect(lighIntensityIn, SIGNAL(textChanged(QString)), glWidget, SLOT(modifyMaxIntensity(QString)));
 	connect(glWidget, SIGNAL(updateLightIntensityIn(QString)), lighIntensityIn, SLOT(setText(QString)));
@@ -203,6 +213,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	thirdLayout->addWidget(thresholdLabel);
 	thirdLayout->addWidget(thresholdIn);
 	thirdLayout->addWidget(line2);
+	thirdLayout->addWidget(billboardsCheckBox);
 	thirdLayout->addWidget(lightBBScaleLabel);
 	thirdLayout->addWidget(lighBBScaleIn);
 	thirdLayout->addWidget(attenuationLabel);
