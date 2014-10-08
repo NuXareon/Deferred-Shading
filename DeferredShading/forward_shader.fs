@@ -29,6 +29,7 @@ uniform directionalLight dLight;
 uniform pointLight pointLights[N_MAX_LIGHTS];
 uniform int nLights;
 uniform sampler2D sampler;
+uniform float zOffset;
 
 void main()
 {
@@ -59,4 +60,5 @@ void main()
     
     gl_FragColor =  texture2D(sampler, texCoord0.xy)*
                     (ambientColor+dLightDiffuseColor+pTotalLightDiffuseColor);
+    gl_FragDepth = gl_FragCoord.z+zOffset;
 }

@@ -175,6 +175,7 @@ void GLWidget::initLocations()
 	texCoordLocation = glGetAttribLocation(shaderProgram,"texCoord");
 	normLocation = glGetAttribLocation(shaderProgram,"norm");
 	samplerLocation = glGetUniformLocation(shaderProgram,"sampler");
+	zOffsetLocation = glGetUniformLocation(shaderProgram,"zOffset");
 	ambientColorLocation = glGetUniformLocation(shaderProgram,"aLight.color");
 	ambientIntensityLocation = glGetUniformLocation(shaderProgram,"aLight.intensity");
 	directionalColorLocation = glGetUniformLocation(shaderProgram,"dLight.color");
@@ -301,7 +302,7 @@ void GLWidget::resizeGL(int width, int height)
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(60,width/height,1.0,10000.0);
+    gluPerspective(60,(double)width/height,1.0,10000.0);
     glMatrixMode(GL_MODELVIEW);
 
 	gBufferDS->init(width, height);
@@ -327,7 +328,20 @@ void GLWidget::setLightUniforms()
 		glUniform3f(pointLightLocations[i].attenuation, pointLightsArr[i].attenuation.constant, pointLightsArr[i].attenuation.linear, pointLightsArr[i].attenuation.exp);
 	}
 	glUniform1i(nLightsLocation, nLights);
+	glUniform1f(zOffsetLocation, 0.0f);
+}
 
+void GLWidget::setLightUniforms(unsigned int l, unsigned int h, float offset)
+{	
+	// Point lights parameters (note: the fragment shader allways uses the n first lights)
+	for (unsigned int i = l; i < h; ++i) {
+		glUniform3f(pointLightLocations[i-l].color, pointLightsArr[i].color.r, pointLightsArr[i].color.g, pointLightsArr[i].color.b);
+		glUniform1f(pointLightLocations[i-l].intensity, pointLightsArr[i].intensity);
+		glUniform3f(pointLightLocations[i-l].position, pointLightsArr[i].position.x, pointLightsArr[i].position.y, pointLightsArr[i].position.z);
+		glUniform3f(pointLightLocations[i-l].attenuation, pointLightsArr[i].attenuation.constant, pointLightsArr[i].attenuation.linear, pointLightsArr[i].attenuation.exp);
+	}
+	glUniform1i(nLightsLocation, h-l);
+	glUniform1f(zOffsetLocation, offset);
 }
 
 void GLWidget::setLightPassUniforms()
@@ -384,9 +398,45 @@ void GLWidget::paintGL()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glUseProgram(shaderProgram);
-		setLightUniforms();
-		//Draw Geometry
-		mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
+		if (nLights < 100) {
+			setLightUniforms();
+			//Draw Geometry
+			mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
+		}
+		else {
+			//glDepthFunc(GL_LEQUAL);
+			unsigned int l_interval = 0;
+			unsigned int h_interval = FORWARD_LIGHTS_INTERVAL;
+			//glEnable(GL_POLYGON_OFFSET_FILL);
+			// First Render
+			setLightUniforms(l_interval, h_interval);
+			mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
+
+			l_interval = h_interval;
+			h_interval += FORWARD_LIGHTS_INTERVAL;
+			if (h_interval > nLights) h_interval = nLights;
+
+			glEnable(GL_BLEND);
+			glBlendEquation(GL_FUNC_ADD);
+			glBlendFunc(GL_ONE, GL_ONE);
+			glDepthMask(GL_FALSE);
+
+			// Blend the rest of the lights
+			while (l_interval < nLights) {
+				setLightUniforms(l_interval, h_interval, -0.00001f);
+				//glClear(GL_DEPTH_BUFFER_BIT);
+				mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
+				l_interval = h_interval;
+				h_interval += FORWARD_LIGHTS_INTERVAL;
+				if (h_interval > nLights) h_interval = nLights;
+				//glPolygonOffset(1.0,1.0);
+				//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			}
+			//glDepthFunc(GL_LESS);
+			glDisable(GL_BLEND);
+			glDepthMask(GL_TRUE);
+			//glDisable(GL_POLYGON_OFFSET_FILL);
+		}
 
 		//Draw ligh billboards
 		if (lBillboards) {
@@ -405,6 +455,11 @@ void GLWidget::paintGL()
 
 		// Draw Geometry
 		mainMesh->Render(positionDeferredGeoLocation, texCoordDeferredGeoLocation, normDeferredGeoLocation, samplerDeferredGeoLocation);
+
+		if (lBillboards) {
+			glUseProgram(0);
+			for (unsigned int i = 0; i < nLights; i++) drawLightBillboard(pointLightsArr[i], 0.15f);
+		}
 
 		glDepthMask(GL_FALSE);
 		glDisable(GL_DEPTH_TEST);

@@ -79,6 +79,7 @@ private:
 	GLuint texCoordLocation;
 	GLuint normLocation;
 	GLuint samplerLocation;
+	GLuint zOffsetLocation;
 	GLuint depthDebugTextureLocation;
 
 	GLuint positionDeferredLocation;
@@ -143,7 +144,8 @@ private:
 	void initializeShaderProgram(const char *vsP, const char *fsP, GLuint *sp);
 	void updateFPS();									// Keeps track of the fps of the painGL function.
 	void initLocations();								// Initializes the lovation variables from the shaders.
-	void setLightUniforms();							// Sends lightning information to the shaders.
+	void setLightUniforms();							// Sends lightning information to the shaders. 
+	void setLightUniforms(unsigned int lower, unsigned int higher, float offset = 0.0f);		// Specifies the range of light to be drawn and a posible offset.
 	void setLightPassUniforms();						// Sends gBuffer infor to the shaders
 	void drawPointLight(pointLight l);					// Draws a sphere equivalent to a point light
 	void drawLightBillboard(pointLight l, float width);	// Draws a billboard for a point light
