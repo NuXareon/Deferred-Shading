@@ -72,6 +72,7 @@ private:
 	GLuint shaderProgramDeferredLight;
 	GLuint shaderProgramDeferredDebug;
 	GLuint shaderProgramForwardDepthDebug;
+	GLuint shaderProgramDepthSet;
 
 	renderModeType renderMode;
 
@@ -88,6 +89,7 @@ private:
 	GLuint samplerDeferredLocation;
 	GLuint minPDeferredLocation;
 	GLuint maxPDeferredLocation;
+	GLuint depthSetSamplerLocation;
 
 	GLuint positionDeferredDebugLocation;
 	GLuint texCoordDeferredDebugLocation;
@@ -137,6 +139,7 @@ private:
 	// Buffers
 	gbuffer *gBufferDS;									// G-buffer: framebuffer with the textures we will use for deferred shading
 	depthBuffer *dBufferFR;								// Depth Buffer: framebuffer used for the depth prepass in the forward reder
+	depthBuffer *dBufferDS;
 	// Functions
 	void initializeLighting();							// Initializes nLights point lights with pseudo-random attributes.
 	void initializeShaders();							// Reads and compiles the vertex and fragment shader.

@@ -137,5 +137,8 @@
     <None Include="forward_shader_depth_debug.fs">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="deferred_shader_set_depth.fs">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

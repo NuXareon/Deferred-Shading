@@ -10,6 +10,8 @@ const char* VSPathDeferredLight = "deferred_shader_light.vs";
 const char* FSPathDeferredLight = "deferred_shader_light.fs";
 const char* VSPathForwardDepthDebug = "forward_shader_depth_debug.vs";
 const char* FSPathForwardDepthDebug = "forward_shader_depth_debug.fs";
+const char* VSPathDeferredDepth = "forward_shader_depth_debug.vs";
+const char* FSPathDeferredDepth = "deferred_shader_set_depth.fs";
 
 GLWidget::GLWidget(QWidget *parent) :
     QGLWidget()
@@ -42,6 +44,7 @@ GLWidget::GLWidget(QWidget *parent) :
 	// Buffers
 	gBufferDS = new gbuffer;
 	dBufferFR = new depthBuffer;
+	dBufferDS = new depthBuffer;
 
 }
 
@@ -194,6 +197,7 @@ void GLWidget::initLocations()
 	texCoordDeferredGeoLocation = glGetAttribLocation(shaderProgramDeferredGeo,"texCoord");
 	normDeferredGeoLocation = glGetAttribLocation(shaderProgramDeferredGeo,"norm");
 	samplerDeferredGeoLocation = glGetUniformLocation(shaderProgramDeferredGeo,"sampler");
+	depthSetSamplerLocation = glGetUniformLocation(shaderProgramDepthSet,"texture");
 	//	Deferred Lighting Shaders
 	screenSizeDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"screenSize");
 	positionBufferDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"positionBuffer");
@@ -289,6 +293,7 @@ void GLWidget::initializeGL()
 	initializeShaderProgram(VSPathDeferredLight, FSPathDeferredLight, &shaderProgramDeferredLight);
 	initializeShaderProgram(VSPathDeferredDebug, FSPathDeferredDebug, &shaderProgramDeferredDebug);
 	initializeShaderProgram(VSPathForwardDepthDebug, FSPathForwardDepthDebug, &shaderProgramForwardDepthDebug);
+	initializeShaderProgram(VSPathDeferredDepth, FSPathDeferredDepth, &shaderProgramDepthSet);
 	initLocations();
 	
 	frames = 0;
@@ -307,6 +312,7 @@ void GLWidget::resizeGL(int width, int height)
 
 	gBufferDS->init(width, height);
 	dBufferFR->init(width, height);
+	dBufferDS->init(width, height);
 }
 
 void GLWidget::setLightUniforms()
@@ -404,10 +410,9 @@ void GLWidget::paintGL()
 			mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
 		}
 		else {
-			//glDepthFunc(GL_LEQUAL);
 			unsigned int l_interval = 0;
 			unsigned int h_interval = FORWARD_LIGHTS_INTERVAL;
-			//glEnable(GL_POLYGON_OFFSET_FILL);
+
 			// First Render
 			setLightUniforms(l_interval, h_interval);
 			mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
@@ -424,18 +429,13 @@ void GLWidget::paintGL()
 			// Blend the rest of the lights
 			while (l_interval < nLights) {
 				setLightUniforms(l_interval, h_interval, -0.00001f);
-				//glClear(GL_DEPTH_BUFFER_BIT);
 				mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
 				l_interval = h_interval;
 				h_interval += FORWARD_LIGHTS_INTERVAL;
 				if (h_interval > nLights) h_interval = nLights;
-				//glPolygonOffset(1.0,1.0);
-				//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			}
-			//glDepthFunc(GL_LESS);
 			glDisable(GL_BLEND);
 			glDepthMask(GL_TRUE);
-			//glDisable(GL_POLYGON_OFFSET_FILL);
 		}
 
 		//Draw ligh billboards
@@ -445,6 +445,18 @@ void GLWidget::paintGL()
 		}
 	} 
 	else if (renderMode == RENDER_DEFERRED){
+		if (lBillboards) { // We need to safe the z-buffer in order to correctly draw the billboards later
+			glUseProgram(0);
+			dBufferDS->bind();
+
+			glDepthMask(GL_TRUE);
+			glEnable(GL_DEPTH_TEST);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			mainMesh->simpleRender();
+
+			dBufferDS->unBind();
+		}
 		// Set Mode
 		glUseProgram(shaderProgramDeferredGeo);
 		gBufferDS->bind(GBUFFER_DRAW);
@@ -455,11 +467,6 @@ void GLWidget::paintGL()
 
 		// Draw Geometry
 		mainMesh->Render(positionDeferredGeoLocation, texCoordDeferredGeoLocation, normDeferredGeoLocation, samplerDeferredGeoLocation);
-
-		if (lBillboards) {
-			glUseProgram(0);
-			for (unsigned int i = 0; i < nLights; i++) drawLightBillboard(pointLightsArr[i], 0.15f);
-		}
 
 		glDepthMask(GL_FALSE);
 		glDisable(GL_DEPTH_TEST);
@@ -477,9 +484,35 @@ void GLWidget::paintGL()
 		
 		// Draw Lights
 		for (unsigned int i = 0; i < nLights; i++) drawPointLight(pointLightsArr[i]);
-		
+
 		glDisable(GL_BLEND);
 		glEnable(GL_DEPTH_TEST);
+		glDepthMask(GL_TRUE);
+		
+		if (lBillboards) {
+			// Copy z-buffer from the gbuffer
+			glClear(GL_DEPTH_BUFFER_BIT);
+			glUseProgram(shaderProgramDepthSet);
+			glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+			dBufferDS->bindTex();
+			glUniform1i(depthSetSamplerLocation, 0);
+
+			glBegin(GL_TRIANGLE_STRIP);
+			glVertex2f(-1.0f,-1.0f);
+			glVertex2f(1.0f,-1.0f);
+			glVertex2f(-1.0f,1.0f);
+			glVertex2f(1.0f,1.0f);
+			glEnd();
+
+			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			glDepthMask(GL_FALSE);
+
+			glUseProgram(0);
+			for (unsigned int i = 0; i < nLights; i++) drawLightBillboard(pointLightsArr[i], 0.15f);
+
+			glDepthMask(GL_TRUE);
+		}
 	}
 	else if (renderMode == RENDER_DEPTH) {
 		DrawDepthPrepass();

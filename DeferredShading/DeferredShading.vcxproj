@@ -178,6 +178,7 @@ copy /Y "$(SolutionDir)DeferredShading\glew-1.11.0\bin\Release\Win32\*.dll" "$(O
     <None Include="deferred_shader_geo.fs" />
     <None Include="deferred_shader_light.fs" />
     <None Include="deferred_shader_light.vs" />
+    <None Include="deferred_shader_set_depth.fs" />
     <None Include="forward_shader.fs" />
     <None Include="forward_shader.vs" />
     <None Include="forward_shader_depth_debug.fs" />
