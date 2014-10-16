@@ -1,10 +1,10 @@
-#version 110
+#version 330 compatibility
 
-const int N_MAX_LIGHTS = 100;
+//const int N_MAX_LIGHTS = 100;
 
 varying vec2 texCoord0;
 varying vec3 norm0;
-varying vec3 position0;
+varying vec3 position0; 
 
 struct ambientLight {
     vec3 color;
@@ -25,40 +25,37 @@ struct pointLight {
 };
 
 uniform ambientLight aLight;
-uniform directionalLight dLight;
-uniform pointLight pointLights[N_MAX_LIGHTS];
 uniform int nLights;
 uniform sampler2D sampler;
-uniform float zOffset;
+uniform samplerBuffer lightsTexBuffer;
 
 void main()
 {
-    // Ambient Light
+    //Ambient Light
     vec4 ambientColor = vec4(aLight.color,1.0)*aLight.intensity;
-    //Diretional Light
+    //Point Lights
     vec3 normal = normalize(norm0);
-    float dLightDiffuseFactor = dot(normal, -dLight.direction);
-    vec4 dLightDiffuseColor;
-    if (dLightDiffuseFactor > 0.0) dLightDiffuseColor = vec4(dLight.color,1.0)*dLight.intensity*dLightDiffuseFactor;
-    else dLightDiffuseFactor = vec4(0.0,0.0,0.0,0.0);
-    // Point Lights
     vec4 pTotalLightDiffuseColor = vec4(0.0,0.0,0.0,0.0);
     for (int i = 0; i < nLights ; i++) {
-        vec3 pDirection = position0 - pointLights[i].position;
+        vec3 lColor = texelFetch(lightsTexBuffer,i*4).rgb;
+        float lIntensity = texelFetch(lightsTexBuffer,i*4+1).r;
+        vec3 lPosition = texelFetch(lightsTexBuffer, i*4+2).xyz;
+        vec3 lAttenuation = texelFetch(lightsTexBuffer, i*4+3).xyz;
+
+        vec3 pDirection = position0 - lPosition;
         float pDistance = length(pDirection);
         pDirection = normalize(pDirection);
 
         float pLightDiffuseFactor = dot(normal, -pDirection);
-        
-        vec4 pLightDiffuseColor;
-        if (pLightDiffuseFactor > 0.0) pLightDiffuseColor = vec4(pointLights[i].color,1.0)*pointLights[i].intensity*pLightDiffuseFactor;
-        else pLightDiffuseColor = vec4(0.0,0.0,0.0,0.0);
 
-        float pAttenuation = pointLights[i].attenuation[0] + pointLights[i].attenuation[1]*pDistance + pointLights[i].attenuation[2]*pDistance*pDistance;
+        vec4 pLightDiffuseColor;
+        if (pLightDiffuseFactor > 0.0) pLightDiffuseColor = vec4(lColor,1.0)*lIntensity*pLightDiffuseFactor;
+        else pLightDiffuseColor = vec4(0.0,0.0,0.0,0.0);
+        
+        float pAttenuation = lAttenuation.x + lAttenuation.y*pDistance + lAttenuation.z*pDistance*pDistance;
         pTotalLightDiffuseColor += pLightDiffuseColor/pAttenuation;
     }
     
     gl_FragColor =  texture2D(sampler, texCoord0.xy)*
-                    (ambientColor+dLightDiffuseColor+pTotalLightDiffuseColor);
-    gl_FragDepth = gl_FragCoord.z+zOffset;
+                    (ambientColor+pTotalLightDiffuseColor);
 }

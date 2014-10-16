@@ -82,6 +82,7 @@ private:
 	GLuint samplerLocation;
 	GLuint zOffsetLocation;
 	GLuint depthDebugTextureLocation;
+	GLuint lightsTexBufferLocation;
 
 	GLuint positionDeferredLocation;
 	GLuint texCoordDeferredLocation;
@@ -118,12 +119,12 @@ private:
 	GLuint directionalColorLocation;
 	GLuint directionalIntensityLocation;
 	GLuint directionalDirectionLocation;
-	struct {
+	/*struct {
 		GLuint color;
 		GLuint intensity;
 		GLuint position;
 		GLuint attenuation;
-	} pointLightLocations[N_MAX_LIGHTS];
+	} pointLightLocations[N_MAX_LIGHTS];*/
 	GLuint nLightsLocation;
 	// Lights
 	ambientLight aLight;								// Global ambient light
@@ -140,6 +141,7 @@ private:
 	gbuffer *gBufferDS;									// G-buffer: framebuffer with the textures we will use for deferred shading
 	depthBuffer *dBufferFR;								// Depth Buffer: framebuffer used for the depth prepass in the forward reder
 	depthBuffer *dBufferDS;
+	GLuint LTB;											// Texture buffer containing the lighting information for forward rendering
 	// Functions
 	void initializeLighting();							// Initializes nLights point lights with pseudo-random attributes.
 	void initializeShaders();							// Reads and compiles the vertex and fragment shader.
@@ -148,7 +150,6 @@ private:
 	void updateFPS();									// Keeps track of the fps of the painGL function.
 	void initLocations();								// Initializes the lovation variables from the shaders.
 	void setLightUniforms();							// Sends lightning information to the shaders. 
-	void setLightUniforms(unsigned int lower, unsigned int higher, float offset = 0.0f);		// Specifies the range of light to be drawn and a posible offset.
 	void setLightPassUniforms();						// Sends gBuffer infor to the shaders
 	void drawPointLight(pointLight l);					// Draws a sphere equivalent to a point light
 	void drawLightBillboard(pointLight l, float width);	// Draws a billboard for a point light

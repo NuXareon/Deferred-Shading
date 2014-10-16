@@ -45,7 +45,6 @@ GLWidget::GLWidget(QWidget *parent) :
 	gBufferDS = new gbuffer;
 	dBufferFR = new depthBuffer;
 	dBufferDS = new depthBuffer;
-
 }
 
 GLWidget::~GLWidget()
@@ -178,13 +177,11 @@ void GLWidget::initLocations()
 	texCoordLocation = glGetAttribLocation(shaderProgram,"texCoord");
 	normLocation = glGetAttribLocation(shaderProgram,"norm");
 	samplerLocation = glGetUniformLocation(shaderProgram,"sampler");
-	zOffsetLocation = glGetUniformLocation(shaderProgram,"zOffset");
 	ambientColorLocation = glGetUniformLocation(shaderProgram,"aLight.color");
 	ambientIntensityLocation = glGetUniformLocation(shaderProgram,"aLight.intensity");
-	directionalColorLocation = glGetUniformLocation(shaderProgram,"dLight.color");
-	directionalIntensityLocation = glGetUniformLocation(shaderProgram,"dLight.intensity");
-	directionalDirectionLocation = glGetUniformLocation(shaderProgram,"dLight.direction");
+	lightsTexBufferLocation = glGetUniformLocation(shaderProgram,"lightsTexBuffer");
 	depthDebugTextureLocation = glGetUniformLocation(shaderProgramForwardDepthDebug,"texture");
+
 	// Deferred Debug Shaders
 	positionDeferredDebugLocation = glGetAttribLocation(shaderProgramDeferredDebug,"position");
 	texCoordDeferredDebugLocation = glGetAttribLocation(shaderProgramDeferredDebug,"texCoord");
@@ -208,27 +205,7 @@ void GLWidget::initLocations()
 	pLightPositionDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"pLight.position");
 	pLightAttenuationDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"pLight.attenuation");
 	pLightRadiusDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"pLight.radius");
-	// Forward Point Lights
-	std::stringstream sstm;
-	std::string uniformName;
-	std::string pl_str = "pointLights[";
-	std::string color_str = "].color";
-	std::string intensity_str = "].intensity";
-	std::string position_str = "].position";
-	std::string attenuation_str = "].attenuation";
-	std::string str_arr[] = {color_str, intensity_str, position_str, attenuation_str};
-	for (unsigned int i = 0; i < N_MAX_LIGHTS; i++) {
-		for (unsigned int j = 0; j < 4; j++) {
-			sstm << pl_str << i << str_arr[j];
-			uniformName = sstm.str();
-			if (j == 0) pointLightLocations[i].color = glGetUniformLocation(shaderProgram,uniformName.c_str());
-			else if (j == 1) pointLightLocations[i].intensity = glGetUniformLocation(shaderProgram,uniformName.c_str());
-			else if (j == 2) pointLightLocations[i].position = glGetUniformLocation(shaderProgram,uniformName.c_str());
-			else if (j == 3) pointLightLocations[i].attenuation = glGetUniformLocation(shaderProgram,uniformName.c_str());
-			sstm.str(std::string());
-			sstm.clear();
-		}
-	}
+
 	nLightsLocation = glGetUniformLocation(shaderProgram,"nLights");
 }
 
@@ -263,7 +240,18 @@ void GLWidget::initializeLighting()
 	float dDirection[] = {-0.577f,-0.577f,-0.577f};
 	
 	aLight = ambientLight(wColor, 0.0f);
-	dLight = directionalLight(wColor, 0.0f, dDirection); 
+	dLight = directionalLight(wColor, 0.0f, dDirection);
+
+	// Populate texture buffer
+	GLuint TB;
+	glGenBuffers(1,&TB);
+	glBindBuffer(GL_TEXTURE_BUFFER,TB);
+	glBufferData(GL_TEXTURE_BUFFER,nLights*sizeof(pointLight),&pointLightsArr[0],GL_STATIC_COPY);
+
+	glBindTexture(GL_TEXTURE_BUFFER,LTB);
+	glTexBuffer(GL_TEXTURE_BUFFER,GL_RGB32F,TB);
+
+	glDeleteBuffers(1,&TB);
 }
 
 void GLWidget::initializeGL()
@@ -280,14 +268,11 @@ void GLWidget::initializeGL()
 	utils::enableVSyncLinux(0);
 	#endif
 
+	glGenTextures(1,&LTB);
 	loadModel(modelPath);
 	lightBillboard = new Texture(GL_TEXTURE_2D, "../DeferredShading/billboard.png");
 	lightBillboard->Load();
 
-    //glShadeModel(GL_SMOOTH);
-	//initializeLightingGL();
-	//initializeShaders();
-	//initializeShadersDeferred();
 	initializeShaderProgram(VSPath, FSPath, &shaderProgram);
 	initializeShaderProgram(VSPathDeferredGeo, FSPathDeferredGeo, &shaderProgramDeferredGeo);
 	initializeShaderProgram(VSPathDeferredLight, FSPathDeferredLight, &shaderProgramDeferredLight);
@@ -321,33 +306,7 @@ void GLWidget::setLightUniforms()
 	glUniform3f(ambientColorLocation, aLight.color.r, aLight.color.g, aLight.color.b);
 	glUniform1f(ambientIntensityLocation,aLight.intensity);
 
-	// Directional light parameters
-	glUniform3f(directionalColorLocation, dLight.color.r, dLight.color.g, dLight.color.b);
-	glUniform1f(directionalIntensityLocation,dLight.intensity);
-	glUniform3f(directionalDirectionLocation,dLight.direction.x,dLight.direction.y,dLight.direction.z); // must be normilized
-
-	// Point lights parameters
-	for (unsigned int i = 0; i < nLights; ++i) {
-		glUniform3f(pointLightLocations[i].color, pointLightsArr[i].color.r, pointLightsArr[i].color.g, pointLightsArr[i].color.b);
-		glUniform1f(pointLightLocations[i].intensity, pointLightsArr[i].intensity);
-		glUniform3f(pointLightLocations[i].position, pointLightsArr[i].position.x, pointLightsArr[i].position.y, pointLightsArr[i].position.z);
-		glUniform3f(pointLightLocations[i].attenuation, pointLightsArr[i].attenuation.constant, pointLightsArr[i].attenuation.linear, pointLightsArr[i].attenuation.exp);
-	}
 	glUniform1i(nLightsLocation, nLights);
-	glUniform1f(zOffsetLocation, 0.0f);
-}
-
-void GLWidget::setLightUniforms(unsigned int l, unsigned int h, float offset)
-{	
-	// Point lights parameters (note: the fragment shader allways uses the n first lights)
-	for (unsigned int i = l; i < h; ++i) {
-		glUniform3f(pointLightLocations[i-l].color, pointLightsArr[i].color.r, pointLightsArr[i].color.g, pointLightsArr[i].color.b);
-		glUniform1f(pointLightLocations[i-l].intensity, pointLightsArr[i].intensity);
-		glUniform3f(pointLightLocations[i-l].position, pointLightsArr[i].position.x, pointLightsArr[i].position.y, pointLightsArr[i].position.z);
-		glUniform3f(pointLightLocations[i-l].attenuation, pointLightsArr[i].attenuation.constant, pointLightsArr[i].attenuation.linear, pointLightsArr[i].attenuation.exp);
-	}
-	glUniform1i(nLightsLocation, h-l);
-	glUniform1f(zOffsetLocation, offset);
 }
 
 void GLWidget::setLightPassUniforms()
@@ -404,45 +363,20 @@ void GLWidget::paintGL()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glUseProgram(shaderProgram);
-		if (nLights < 100) {
-			setLightUniforms();
-			//Draw Geometry
-			mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
-		}
-		else {
-			unsigned int l_interval = 0;
-			unsigned int h_interval = FORWARD_LIGHTS_INTERVAL;
 
-			// First Render
-			setLightUniforms(l_interval, h_interval);
-			mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
+		// set lighting texture buffer
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_BUFFER, LTB);
+		glUniform1i(lightsTexBufferLocation, 1);
 
-			l_interval = h_interval;
-			h_interval += FORWARD_LIGHTS_INTERVAL;
-			if (h_interval > nLights) h_interval = nLights;
-
-			glEnable(GL_BLEND);
-			glBlendEquation(GL_FUNC_ADD);
-			glBlendFunc(GL_ONE, GL_ONE);
-			glDepthMask(GL_FALSE);
-
-			// Blend the rest of the lights
-			while (l_interval < nLights) {
-				setLightUniforms(l_interval, h_interval, -0.00001f);
-				mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
-				l_interval = h_interval;
-				h_interval += FORWARD_LIGHTS_INTERVAL;
-				if (h_interval > nLights) h_interval = nLights;
-			}
-			glDisable(GL_BLEND);
-			glDepthMask(GL_TRUE);
-		}
+		setLightUniforms();
+		mainMesh->Render(positionLocation, texCoordLocation, normLocation, samplerLocation);
 
 		//Draw ligh billboards
 		if (lBillboards) {
 			glUseProgram(0);
 			for (unsigned int i = 0; i < nLights; i++) drawLightBillboard(pointLightsArr[i], 0.15f);
-		}
+		}		
 	} 
 	else if (renderMode == RENDER_DEFERRED){
 		if (lBillboards) { // We need to safe the z-buffer in order to correctly draw the billboards later
@@ -550,7 +484,7 @@ void GLWidget::paintGL()
 void GLWidget::drawPointLight(pointLight l)
 {
 	glUniform3f(pLightColorDeferredLightLocation, l.color.r, l.color.g, l.color.b);
-	glUniform1f(pLightIntensityDeferredLightLocation, l.intensity);
+	glUniform1f(pLightIntensityDeferredLightLocation, l.intensity.i);
 	glUniform3f(pLightPositionDeferredLightLocation, l.position.x, l.position.y, l.position.z);
 	glUniform3f(pLightAttenuationDeferredLightLocation, l.attenuation.constant, l.attenuation.linear, l.attenuation.exp);
 	float r = utils::calcLightRadius(l, threshold);

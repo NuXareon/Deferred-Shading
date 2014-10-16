@@ -1,4 +1,4 @@
-#version 110
+#version 330 compatibility
 
 struct pointLight {
     vec3 color;

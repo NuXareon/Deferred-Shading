@@ -1,4 +1,4 @@
-#version 110
+#version 330 compatibility
 
 const vec2 madd=vec2(0.5,0.5);
 varying vec2 texCoord;

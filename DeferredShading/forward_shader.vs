@@ -1,4 +1,4 @@
-#version 110
+#version 330 compatibility
 
 attribute vec3 position;
 attribute vec2 texCoord;

@@ -1,4 +1,4 @@
-#version 110
+#version 330 compatibility
 
 varying vec2 texCoord0;
 varying vec3 norm0;

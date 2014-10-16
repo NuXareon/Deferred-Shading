@@ -127,7 +127,9 @@ struct pointLight{
 	struct {
 		float r; float g; float b;
 	} color;
-	float intensity;
+	struct {
+		float i; float i_; float i__; // i_ and i__ not used. This improves data fetching to the fragment shader.
+	} intensity;
 	struct {
 		float x; float y; float z;
 	} position;
@@ -138,7 +140,7 @@ struct pointLight{
 	pointLight(float c[3], float i, float p[3], float a[3])
 	{
 		color.r = c[0]; color.g = c[1]; color.b = c[2];
-		intensity = i;
+		intensity.i = i;
 		position.x = p[0]; position.y = p[1]; position.z = p[2];
 		attenuation.constant = a[0]; attenuation.linear = a[1]; attenuation.exp = a[2];
 	}
