@@ -298,6 +298,10 @@ void GLWidget::resizeGL(int width, int height)
 	gBufferDS->init(width, height);
 	dBufferFR->init(width, height);
 	dBufferDS->init(width, height);
+
+	gLightsCol = ceil((float)width/GRID_RES);
+	gLightsRow = ceil((float)height/GRID_RES);
+	lightsMatrix.resize(gLightsRow*gLightsCol);
 }
 
 void GLWidget::setLightUniforms()
@@ -356,6 +360,7 @@ void GLWidget::paintGL()
 	//drawAxis();
 
 	if (renderMode == RENDER_FORWARD){
+		updateLightsMatrix();
 		// Set mode
 		gBufferDS->bind(GBUFFER_DEFAULT);
 		glDepthMask(GL_TRUE);
@@ -571,6 +576,95 @@ void GLWidget::DrawDepthPrepass()
 		glVertex2f(1.0f,1.0f);
 		glEnd();
 }
+
+void GLWidget::updateLightsMatrix()
+{
+	/*
+		gluLookAt(	xPos, yPos, zPos,
+				xPos+cos(betaRad)*cos(alphaRad), yPos+sin(betaRad), zPos-cos(betaRad)*sin(alphaRad),
+				0.0f, 1.0f, 0.0f);
+				*/
+	const float PI = 3.1415927f;
+	float alphaRad = PI*alpha/180;
+	float betaRad = PI*beta/180;
+	glm::vec3 right = glm::vec3(cos(betaRad)*cos(alphaRad), sin(betaRad), cos(betaRad)*sin(alphaRad));
+	right = glm::normalize(right);
+	right = glm::cross(right,glm::vec3(0.0,1.0,0.0));
+	right = glm::normalize(right);
+	clearLigthsMatrix();
+	for (unsigned int i = 0; i < nLights; i++) {
+		glm::vec4 c = glm::vec4(pointLightsArr[i].position.x, pointLightsArr[i].position.y, pointLightsArr[i].position.z,0.0);
+		float r = utils::calcLightRadius(pointLightsArr[i], threshold);
+		glm::vec4 p = c+r*glm::vec4(right,0.0);
+
+		float gl_ModelViewMatrix[16];
+		glGetFloatv(GL_MODELVIEW_MATRIX, gl_ModelViewMatrix);
+		glm::mat4 m = glm::mat4(gl_ModelViewMatrix[0],gl_ModelViewMatrix[1],gl_ModelViewMatrix[2],gl_ModelViewMatrix[3],gl_ModelViewMatrix[4],gl_ModelViewMatrix[5],gl_ModelViewMatrix[6],gl_ModelViewMatrix[7],gl_ModelViewMatrix[8],gl_ModelViewMatrix[9],gl_ModelViewMatrix[10],gl_ModelViewMatrix[11],gl_ModelViewMatrix[12],gl_ModelViewMatrix[13],gl_ModelViewMatrix[14],gl_ModelViewMatrix[15]);
+		float gl_ProjectionMatrix[16];
+		glGetFloatv(GL_PROJECTION_MATRIX, gl_ProjectionMatrix);
+		glm::mat4 proj = glm::mat4(gl_ProjectionMatrix[0],gl_ProjectionMatrix[1],gl_ProjectionMatrix[2],gl_ProjectionMatrix[3],gl_ProjectionMatrix[4],gl_ProjectionMatrix[5],gl_ProjectionMatrix[6],gl_ProjectionMatrix[7],gl_ProjectionMatrix[8],gl_ProjectionMatrix[9],gl_ProjectionMatrix[10],gl_ProjectionMatrix[11],gl_ProjectionMatrix[12],gl_ProjectionMatrix[13],gl_ProjectionMatrix[14],gl_ProjectionMatrix[15]);
+
+		glm::vec4 cp = proj*m*c;
+		cp = cp/cp.w;
+		cp.x = width()*(cp.x+1)/2;
+		cp.y = height()*(cp.y+1)/2;
+		glm::vec4 pp = proj*m*p;
+		pp = pp/pp.w;
+		pp.x = width()*(pp.x+1)/2;
+		pp.y = height()*(pp.y+1)/2;
+		float pRadius = glm::length(cp.xy-pp.xy);
+
+		float x1,x2,y1,y2;
+		for (unsigned int j = 0; j < gLightsRow; j++) {
+			for (unsigned int k = 0; k < gLightsCol; k++) {
+				x1 = k*16; x2 = (k+1)*16;
+				y1 = j*16; y2 = (j+1)*16;
+				if (cp.x >= x1 && cp.x < x2) {
+					if (cp.y >= y1 && cp.y < y2) { //center inside tile
+						lightsMatrix[j*gLightsCol+k].push_back(i);
+					} 
+					else if (cp.y > y2) { // down (r> y-y2)
+						if (pRadius > abs(cp.y-y2)) lightsMatrix[j*gLightsCol+k].push_back(i);
+					} 
+					else if (cp.y < y1) { // up (r> y-y1)
+						if (pRadius > abs(cp.y-y1)) lightsMatrix[j*gLightsCol+k].push_back(i);
+					} 
+				} 
+				else if (cp.y <= y1 && cp.y > y2) { 
+					if (cp.x < x1) { // left
+						if (pRadius > abs(cp.x-x1)) lightsMatrix[j*gLightsCol+k].push_back(i);
+					}
+					else if (cp.x > x2) { // right
+						if (pRadius > abs(cp.x-x2)) lightsMatrix[j*gLightsCol+k].push_back(i);
+					}
+				}
+				else if (cp.x < x1 && cp.y < y1) { // upper-left
+					if (pRadius > sqrt((cp.x-x1)*(cp.x-x1)+(cp.y-y1)*(cp.y-y1))) lightsMatrix[j*gLightsCol+k].push_back(i);
+				} 
+				else if (cp.x > x2 && cp.y < y1) { // upper-right
+					if (pRadius > sqrt((cp.x-x2)*(cp.x-x2)+(cp.y-y1)*(cp.y-y1))) lightsMatrix[j*gLightsCol+k].push_back(i);
+				}
+				else if (cp.x < x1 && cp.y > y2) { // down-left
+					if (pRadius > sqrt((cp.x-x1)*(cp.x-x1)+(cp.y-y2)*(cp.y-y2))) lightsMatrix[j*gLightsCol+k].push_back(i);
+				}
+				else if (cp.x > x2 && cp.y > y2) { // down-right
+					if (pRadius >sqrt((cp.x-x2)*(cp.x-x2)+(cp.y-y2)*(cp.y-y2))) lightsMatrix[j*gLightsCol+k].push_back(i);
+				}
+			}
+		}
+			//std::vector<std::vector<int> > lightsMatrix;
+		//r = (cos(betaRad)*cos(alphaRad), sin(betaRad), cos(betaRad)*sin(alphaRad))/|x| * (0,1,0)
+		//right = r/|r|;
+		//int a =2;
+	}
+	int a = 2;
+}
+void GLWidget::clearLigthsMatrix(){
+	for (unsigned int i = 0; i < lightsMatrix.size(); i++) {
+		lightsMatrix[i].clear();
+	}
+}
+
 
 void GLWidget::updateFPS()
 {

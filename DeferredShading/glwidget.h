@@ -137,6 +137,8 @@ private:
 	float constAtt, linearAtt, expAtt;
 	Texture* lightBillboard;
 	bool lBillboards;
+	unsigned int gLightsCol, gLightsRow;
+	std::vector<std::vector<int> > lightsMatrix;
 	// Buffers
 	gbuffer *gBufferDS;									// G-buffer: framebuffer with the textures we will use for deferred shading
 	depthBuffer *dBufferFR;								// Depth Buffer: framebuffer used for the depth prepass in the forward reder
@@ -154,4 +156,6 @@ private:
 	void drawPointLight(pointLight l);					// Draws a sphere equivalent to a point light
 	void drawLightBillboard(pointLight l, float width);	// Draws a billboard for a point light
 	void DrawDepthPrepass();
+	void updateLightsMatrix();
+	void clearLigthsMatrix();
 };
