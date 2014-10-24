@@ -57,7 +57,16 @@ void GLWidget::loadModel(std::string path)
 	maxIntensity = 0.0f;
 	mainMesh = new Mesh();
     mainMesh->LoadMesh(modelPath);
-	initializeLighting();
+	std::ifstream ifs(LIGHT_PATH);
+	if (ifs.good()) {
+		std::string s;
+		std::getline(ifs,s);
+		if (s == modelPath) {
+			importLighting(ifs);
+		}
+		else initializeLighting();
+	}
+	else initializeLighting();
 }
 
 void GLWidget::genLightning(int n)
@@ -228,11 +237,19 @@ void GLWidget::initializeLighting()
 
 	// Populate pointLightsArr with nLight
 	for (unsigned int i = 0; i < nLights; i++){
-		float pColor[] = {distributionC(generator), distributionC(generator), distributionC(generator)};
+		bool nearGeometry = false;
 		float pPosition[] = {distributionX(generator),distributionY(generator),distributionZ(generator)};
+		float pColor[] = {distributionC(generator), distributionC(generator), distributionC(generator)};	
 		//float pIntensity = distributionI(generator);
 		float pIntensity = maxIntensity;
-		pointLightsArr[i] = pointLight(pColor, pIntensity, pPosition, pAttenuation);
+		pointLight p = pointLight(pColor, pIntensity, pPosition, pAttenuation);
+		while (!utils::isLightNearGeo(p, &mainMesh->m_vPosition)) {
+			pPosition[0] = distributionX(generator);
+			pPosition[1] = distributionY(generator);
+			pPosition[2] = distributionZ(generator);
+			p = pointLight(pColor, pIntensity, pPosition, pAttenuation);
+		}
+		pointLightsArr[i] = p;
 	}
 	
 	// Directional + Ambient lights (remove?)
@@ -241,6 +258,49 @@ void GLWidget::initializeLighting()
 	
 	aLight = ambientLight(wColor, 0.0f);
 	dLight = directionalLight(wColor, 0.0f, dDirection);
+
+	// Populate texture buffer
+	GLuint TB;
+	glGenBuffers(1,&TB);
+	glBindBuffer(GL_TEXTURE_BUFFER,TB);
+	glBufferData(GL_TEXTURE_BUFFER,nLights*sizeof(pointLight),&pointLightsArr[0],GL_STATIC_COPY);
+
+	glBindTexture(GL_TEXTURE_BUFFER,LTB);
+	glTexBuffer(GL_TEXTURE_BUFFER,GL_RGB32F,TB);
+
+	glDeleteBuffers(1,&TB);
+
+	utils::saveLightingToFile(pointLightsArr, nLights, modelPath);
+}
+
+void GLWidget::importLighting(std::ifstream& ifs)
+{
+	float wColor[] = {1.0f,1.0f,1.0f};
+	aLight = ambientLight(wColor, 0.0f);
+
+	std::string light = "";
+	unsigned int i = 0;
+	while (getline(ifs, light)) {
+		std::stringstream ss(light);
+		std::string param = "";
+		unsigned int j = 0;
+		while (getline(ss,param,',')) {
+			if (j == 0) pointLightsArr[i].color.r = std::stof(param);
+			if (j == 1) pointLightsArr[i].color.g = std::stof(param);
+			if (j == 2) pointLightsArr[i].color.b = std::stof(param);
+			if (j == 3) pointLightsArr[i].intensity.i = std::stof(param);
+			if (j == 4) pointLightsArr[i].position.x = std::stof(param);
+			if (j == 5) pointLightsArr[i].position.y = std::stof(param);
+			if (j == 6) pointLightsArr[i].position.z = std::stof(param);
+			if (j == 7) pointLightsArr[i].attenuation.constant = std::stof(param);
+			if (j == 8) pointLightsArr[i].attenuation.linear = std::stof(param);
+			if (j == 9) pointLightsArr[i].attenuation.exp = std::stof(param);
+			++j;
+		}
+		++i;
+	}
+	ifs.close();
+	nLights = i;
 
 	// Populate texture buffer
 	GLuint TB;
@@ -360,7 +420,7 @@ void GLWidget::paintGL()
 	//drawAxis();
 
 	if (renderMode == RENDER_FORWARD){
-		updateLightsMatrix();
+		//updateLightsMatrix();
 		// Set mode
 		gBufferDS->bind(GBUFFER_DEFAULT);
 		glDepthMask(GL_TRUE);
@@ -591,18 +651,19 @@ void GLWidget::updateLightsMatrix()
 	right = glm::normalize(right);
 	right = glm::cross(right,glm::vec3(0.0,1.0,0.0));
 	right = glm::normalize(right);
+
+	float gl_ModelViewMatrix[16];
+	glGetFloatv(GL_MODELVIEW_MATRIX, gl_ModelViewMatrix);
+	glm::mat4 m = glm::mat4(gl_ModelViewMatrix[0],gl_ModelViewMatrix[1],gl_ModelViewMatrix[2],gl_ModelViewMatrix[3],gl_ModelViewMatrix[4],gl_ModelViewMatrix[5],gl_ModelViewMatrix[6],gl_ModelViewMatrix[7],gl_ModelViewMatrix[8],gl_ModelViewMatrix[9],gl_ModelViewMatrix[10],gl_ModelViewMatrix[11],gl_ModelViewMatrix[12],gl_ModelViewMatrix[13],gl_ModelViewMatrix[14],gl_ModelViewMatrix[15]);
+	float gl_ProjectionMatrix[16];
+	glGetFloatv(GL_PROJECTION_MATRIX, gl_ProjectionMatrix);
+	glm::mat4 proj = glm::mat4(gl_ProjectionMatrix[0],gl_ProjectionMatrix[1],gl_ProjectionMatrix[2],gl_ProjectionMatrix[3],gl_ProjectionMatrix[4],gl_ProjectionMatrix[5],gl_ProjectionMatrix[6],gl_ProjectionMatrix[7],gl_ProjectionMatrix[8],gl_ProjectionMatrix[9],gl_ProjectionMatrix[10],gl_ProjectionMatrix[11],gl_ProjectionMatrix[12],gl_ProjectionMatrix[13],gl_ProjectionMatrix[14],gl_ProjectionMatrix[15]);
+
 	clearLigthsMatrix();
 	for (unsigned int i = 0; i < nLights; i++) {
 		glm::vec4 c = glm::vec4(pointLightsArr[i].position.x, pointLightsArr[i].position.y, pointLightsArr[i].position.z,0.0);
 		float r = utils::calcLightRadius(pointLightsArr[i], threshold);
 		glm::vec4 p = c+r*glm::vec4(right,0.0);
-
-		float gl_ModelViewMatrix[16];
-		glGetFloatv(GL_MODELVIEW_MATRIX, gl_ModelViewMatrix);
-		glm::mat4 m = glm::mat4(gl_ModelViewMatrix[0],gl_ModelViewMatrix[1],gl_ModelViewMatrix[2],gl_ModelViewMatrix[3],gl_ModelViewMatrix[4],gl_ModelViewMatrix[5],gl_ModelViewMatrix[6],gl_ModelViewMatrix[7],gl_ModelViewMatrix[8],gl_ModelViewMatrix[9],gl_ModelViewMatrix[10],gl_ModelViewMatrix[11],gl_ModelViewMatrix[12],gl_ModelViewMatrix[13],gl_ModelViewMatrix[14],gl_ModelViewMatrix[15]);
-		float gl_ProjectionMatrix[16];
-		glGetFloatv(GL_PROJECTION_MATRIX, gl_ProjectionMatrix);
-		glm::mat4 proj = glm::mat4(gl_ProjectionMatrix[0],gl_ProjectionMatrix[1],gl_ProjectionMatrix[2],gl_ProjectionMatrix[3],gl_ProjectionMatrix[4],gl_ProjectionMatrix[5],gl_ProjectionMatrix[6],gl_ProjectionMatrix[7],gl_ProjectionMatrix[8],gl_ProjectionMatrix[9],gl_ProjectionMatrix[10],gl_ProjectionMatrix[11],gl_ProjectionMatrix[12],gl_ProjectionMatrix[13],gl_ProjectionMatrix[14],gl_ProjectionMatrix[15]);
 
 		glm::vec4 cp = proj*m*c;
 		cp = cp/cp.w;
@@ -617,8 +678,8 @@ void GLWidget::updateLightsMatrix()
 		float x1,x2,y1,y2;
 		for (unsigned int j = 0; j < gLightsRow; j++) {
 			for (unsigned int k = 0; k < gLightsCol; k++) {
-				x1 = k*16; x2 = (k+1)*16;
-				y1 = j*16; y2 = (j+1)*16;
+				x1 = k*GRID_RES; x2 = (k+1)*GRID_RES;
+				y1 = j*GRID_RES; y2 = (j+1)*GRID_RES;
 				if (cp.x >= x1 && cp.x < x2) {
 					if (cp.y >= y1 && cp.y < y2) { //center inside tile
 						lightsMatrix[j*gLightsCol+k].push_back(i);
@@ -657,14 +718,13 @@ void GLWidget::updateLightsMatrix()
 		//right = r/|r|;
 		//int a =2;
 	}
-	int a = 2;
 }
+
 void GLWidget::clearLigthsMatrix(){
 	for (unsigned int i = 0; i < lightsMatrix.size(); i++) {
 		lightsMatrix[i].clear();
 	}
 }
-
 
 void GLWidget::updateFPS()
 {

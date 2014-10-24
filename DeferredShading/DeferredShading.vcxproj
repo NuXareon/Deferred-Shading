@@ -183,6 +183,7 @@ copy /Y "$(SolutionDir)DeferredShading\glew-1.11.0\bin\Release\Win32\*.dll" "$(O
     <None Include="forward_shader.vs" />
     <None Include="forward_shader_depth_debug.fs" />
     <None Include="forward_shader_depth_debug.vs" />
+    <None Include="lights.csv" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

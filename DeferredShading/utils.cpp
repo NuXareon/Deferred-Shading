@@ -103,3 +103,26 @@ float utils::calcLightRadius(pointLight l, float threshold)
 	if (l.attenuation.exp == 0.0f) return (threshold*l.intensity.i*glm::max(glm::max(l.color.r,l.color.g),l.color.b)-l.attenuation.constant)/l.attenuation.linear;
 	else return (sqrt(-4*l.attenuation.constant*l.attenuation.exp+l.attenuation.linear*l.attenuation.linear+4*l.attenuation.exp*threshold*l.intensity.i*glm::max(glm::max(l.color.r,l.color.g),l.color.b))-l.attenuation.linear)/(2*l.attenuation.exp);
 }
+
+bool utils::isLightNearGeo(pointLight p, const std::vector<Vector3f> *m)
+{
+	for (unsigned int i = 0; i < m->size(); i++) {
+		float l = glm::length(glm::vec3(p.position.x-(*m)[i].x,p.position.y-(*m)[i].y,p.position.z-(*m)[i].z));
+		float r = calcLightRadius(p, LIGHT_THRESHOLD);
+		if (l < r/LIGHT_PROX_RATIO) return true;
+	}
+	return false;
+}
+
+void utils::saveLightingToFile(pointLight p[], int n, std::string mPath)
+{
+	std::ofstream ofs(LIGHT_PATH);
+	ofs << mPath << std::endl;
+	for (int i = 0; i < n; i++) {
+		ofs << p[i].color.r << "," << p[i].color.g << "," << p[i].color.b << ",";
+		ofs << p[i].intensity.i << ",";
+		ofs << p[i].position.x << "," << p[i].position.y << "," << p[i].position.z << ",";
+		ofs << p[i].attenuation.constant << "," << p[i].attenuation.linear << "," << p[i].attenuation.exp << std::endl;
+	}
+	ofs.close();
+}

@@ -140,5 +140,6 @@
     <None Include="deferred_shader_set_depth.fs">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="lights.csv" />
   </ItemGroup>
 </Project>

@@ -30,6 +30,8 @@
 #define ATTENUATION_EXP			0.0
 #define FORWARD_LIGHTS_INTERVAL	100
 #define GRID_RES				16.0
+#define LIGHT_PROX_RATIO		4.0
+#define LIGHT_PATH				"lights.csv"
 
 enum renderModeType {RENDER_POSITION, RENDER_NORMAL, RENDER_DIFFUSE, RENDER_ALL, RENDER_FORWARD, RENDER_DEPTH, RENDER_DEFERRED};
 
@@ -157,4 +159,6 @@ public:
 	static bool checkExtension(char* ext);
 	static void drawSphere(double r, int lats, int longs);
 	static float calcLightRadius(pointLight l, float threshold);
+	static bool isLightNearGeo(pointLight l, const std::vector<Vector3f>* m);
+	static void saveLightingToFile(pointLight p[], int n, std::string mPath);
 };

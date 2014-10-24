@@ -91,6 +91,8 @@ void Mesh::InitMesh(unsigned int Index, const aiMesh *paiMesh)
 
         Vertices.push_back(v);
 		
+		m_vPosition.push_back(Vector3f(pPos->x, pPos->y, pPos->z));
+
 		if (pPos->x > bb.max.x) bb.max.x = pPos->x;
 		if (pPos->y > bb.max.y) bb.max.y = pPos->y;
 		if (pPos->z > bb.max.z) bb.max.z = pPos->z;

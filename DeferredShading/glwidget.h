@@ -146,6 +146,7 @@ private:
 	GLuint LTB;											// Texture buffer containing the lighting information for forward rendering
 	// Functions
 	void initializeLighting();							// Initializes nLights point lights with pseudo-random attributes.
+	void importLighting(std::ifstream& ifs);
 	void initializeShaders();							// Reads and compiles the vertex and fragment shader.
 	void initializeShadersDeferred();					// same as initilizeShaders() but for deferred shading shaders.
 	void initializeShaderProgram(const char *vsP, const char *fsP, GLuint *sp);

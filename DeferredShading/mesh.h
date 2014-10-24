@@ -15,6 +15,8 @@ public:
 	void simpleRender();
 	BoundingBox getBoundingBox();
 
+	std::vector<Vector3f> m_vPosition;
+
 private:
     bool InitFromScene(const aiScene* pScene, const std::string& Filename);
     void InitMesh(unsigned int Index, const aiMesh* paiMesh);
