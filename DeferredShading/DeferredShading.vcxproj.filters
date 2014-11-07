@@ -141,5 +141,11 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="lights.csv" />
+    <None Include="forward_shader_blend.fs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="forward_plus.fs">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

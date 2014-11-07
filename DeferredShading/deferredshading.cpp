@@ -38,6 +38,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	// Render
 	QMenu *renderMenu = menuBar()->addMenu(tr("&Render"));
 	QAction *forwardRenderAct = new QAction(tr("&Forward"), this);
+	QAction *forwardBlendRenderAct = new QAction(tr("&Forward(Blend)"), this);
 	QAction *deferredRenderAct = new QAction(tr("&Deferred"), this);
 	QAction *positionRenderAct = new QAction(tr("&Position"), this);
 	QAction *diffuseRenderAct = new QAction(tr("&Diffuse"), this);
@@ -45,6 +46,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	QAction *allRenderAct = new QAction(tr("&All"), this);
 	QAction *depthRenderAct = new QAction(tr("&Depth"), this);
 	renderMenu->addAction(forwardRenderAct);
+	renderMenu->addAction(forwardBlendRenderAct);
 	renderMenu->addAction(deferredRenderAct);
 	renderMenu->addSeparator();
 	renderMenu->addAction(positionRenderAct);
@@ -91,7 +93,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 
 	// Threshold (deferred only)
 	QLabel *thresholdLabel = new QLabel();
-	thresholdLabel->setText("Threshold (Deferred only): ");
+	thresholdLabel->setText("Threshold: ");
 
 	QLineEdit *thresholdIn = new QLineEdit();
 	thresholdIn->setValidator(intValidator2);
@@ -178,6 +180,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	connect(loadModelAct,SIGNAL(triggered()), this, SLOT(loadModelDia()));
 	connect(this,SIGNAL(modelPathChange(std::string)), glWidget, SLOT(loadModel(std::string)));
 	connect(forwardRenderAct,SIGNAL(triggered()), glWidget, SLOT(setForwardRenderMode()));
+	connect(forwardBlendRenderAct,SIGNAL(triggered()), glWidget, SLOT(setForwardBlendRenderMode()));
 	connect(deferredRenderAct,SIGNAL(triggered()), glWidget, SLOT(setDeferredRenderMode()));
 	connect(positionRenderAct,SIGNAL(triggered()), glWidget, SLOT(setPositionRenderMode()));
 	connect(diffuseRenderAct,SIGNAL(triggered()), glWidget, SLOT(setDiffuseRenderMode()));

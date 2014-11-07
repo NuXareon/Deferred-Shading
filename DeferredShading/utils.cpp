@@ -120,7 +120,7 @@ void utils::saveLightingToFile(pointLight p[], int n, std::string mPath)
 	ofs << mPath << std::endl;
 	for (int i = 0; i < n; i++) {
 		ofs << p[i].color.r << "," << p[i].color.g << "," << p[i].color.b << ",";
-		ofs << p[i].intensity.i << ",";
+		ofs << p[i].intensity.i << "," << p[i].intensity.i_ << ",";
 		ofs << p[i].position.x << "," << p[i].position.y << "," << p[i].position.z << ",";
 		ofs << p[i].attenuation.constant << "," << p[i].attenuation.linear << "," << p[i].attenuation.exp << std::endl;
 	}

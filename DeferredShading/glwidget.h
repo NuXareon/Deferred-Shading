@@ -28,6 +28,7 @@ public slots:
 	void enableBillboards(int s);
 	// Render
 	void setForwardRenderMode();
+	void setForwardBlendRenderMode();
 	void setPositionRenderMode();
 	void setNormalRenderMode();
 	void setDiffuseRenderMode();
@@ -68,6 +69,7 @@ private:
 	int inputTimerId, drawTimerId;
 	// Shader atribute and uniform locations
 	GLuint shaderProgram;
+	GLuint shaderProgramBlend;
 	GLuint shaderProgramDeferredGeo;
 	GLuint shaderProgramDeferredLight;
 	GLuint shaderProgramDeferredDebug;
@@ -80,9 +82,17 @@ private:
 	GLuint texCoordLocation;
 	GLuint normLocation;
 	GLuint samplerLocation;
-	GLuint zOffsetLocation;
 	GLuint depthDebugTextureLocation;
 	GLuint lightsTexBufferLocation;
+
+	GLuint positionBlendLocation;
+	GLuint texCoordBlendLocation;
+	GLuint normBlendLocation;
+	GLuint samplerBlendLocation;
+	GLuint zOffsetBlendLocation;
+	GLuint ambientColorBlendLocation;
+	GLuint ambientIntensityBlendLocation;
+	GLuint nLightsBlendLocation;
 
 	GLuint positionDeferredLocation;
 	GLuint texCoordDeferredLocation;
@@ -119,12 +129,13 @@ private:
 	GLuint directionalColorLocation;
 	GLuint directionalIntensityLocation;
 	GLuint directionalDirectionLocation;
-	/*struct {
+	struct {
 		GLuint color;
 		GLuint intensity;
+		GLuint radius;
 		GLuint position;
 		GLuint attenuation;
-	} pointLightLocations[N_MAX_LIGHTS];*/
+	} pointLightLocations[FORWARD_LIGHTS_INTERVAL];
 	GLuint nLightsLocation;
 	// Lights
 	ambientLight aLight;								// Global ambient light
@@ -139,6 +150,7 @@ private:
 	bool lBillboards;
 	unsigned int gLightsCol, gLightsRow;
 	std::vector<std::vector<int> > lightsMatrix;
+	std::vector<int> lightsScanSum;
 	// Buffers
 	gbuffer *gBufferDS;									// G-buffer: framebuffer with the textures we will use for deferred shading
 	depthBuffer *dBufferFR;								// Depth Buffer: framebuffer used for the depth prepass in the forward reder
@@ -155,6 +167,7 @@ private:
 	void setLightUniforms();							// Sends lightning information to the shaders. 
 	void setLightPassUniforms();						// Sends gBuffer infor to the shaders
 	void drawPointLight(pointLight l);					// Draws a sphere equivalent to a point light
+	void setLightUniformsBlend(unsigned int l, unsigned int h, float offset);
 	void drawLightBillboard(pointLight l, float width);	// Draws a billboard for a point light
 	void DrawDepthPrepass();
 	void updateLightsMatrix();
