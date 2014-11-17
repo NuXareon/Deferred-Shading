@@ -25,3 +25,4 @@ Links
 
 - Drive: https://docs.google.com/document/d/18DZZu6uij1NknfQejhovRVg8y3756xz0BbT67DwLoBc/edit?usp=sharing
 - Imgur: http://imgur.com/a/MBGr2
+- Informe previ: https://docs.google.com/document/d/1WdmQJXsaLGKol9I29WGMWySgJ58TuFWXiA42b2zQVWY/edit?usp=sharing
