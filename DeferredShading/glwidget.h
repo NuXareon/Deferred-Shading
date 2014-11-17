@@ -35,6 +35,7 @@ public slots:
 	void setAllRenderMode();
 	void setDepthRenderMode();
 	void setDeferredRenderMode();
+	void setForwardDebugRenderMode();
 	// Misc.
 	void loadModel(std::string path);					// Loads a model located on path.
 	void genLightning(int n);							// Modifies nLights and regenerates lightning, see initializeLightning().
@@ -75,6 +76,7 @@ private:
 	GLuint shaderProgramDeferredDebug;
 	GLuint shaderProgramForwardDepthDebug;
 	GLuint shaderProgramDepthSet;
+	GLuint shaderProgramForwardPlusDebug;
 
 	renderModeType renderMode;
 
@@ -123,6 +125,10 @@ private:
 	GLuint pLightPositionDeferredLightLocation;
 	GLuint pLightAttenuationDeferredLightLocation;
 	GLuint pLightRadiusDeferredLightLocation;
+	
+	GLuint scanSumForwardDebugLocation;
+	GLuint maxLightsForwardDebugLocation;
+	GLuint screenSizeForwardDebugLocation;
 
 	GLuint ambientColorLocation;
 	GLuint ambientIntensityLocation;
@@ -150,7 +156,8 @@ private:
 	bool lBillboards;
 	unsigned int gLightsCol, gLightsRow;
 	std::vector<std::vector<int> > lightsMatrix;
-	std::vector<int> lightsScanSum;
+	std::vector<float> lightsScanSum;
+	unsigned int maxTileLights;
 	// Buffers
 	gbuffer *gBufferDS;									// G-buffer: framebuffer with the textures we will use for deferred shading
 	depthBuffer *dBufferFR;								// Depth Buffer: framebuffer used for the depth prepass in the forward reder
@@ -170,6 +177,7 @@ private:
 	void setLightUniformsBlend(unsigned int l, unsigned int h, float offset);
 	void drawLightBillboard(pointLight l, float width);	// Draws a billboard for a point light
 	void DrawDepthPrepass();
+	void DrawLightsGrid();
 	void updateLightsMatrix();
 	void clearLigthsMatrix();
 };

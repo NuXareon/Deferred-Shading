@@ -2,6 +2,8 @@
 
 const char* VSPath = "forward_shader.vs";
 const char* FSPath = "forward_shader.fs";
+const char* VSPathForwardPlusDebug = "forward_shader_depth_debug.vs";
+const char* FSPathForwardPlusDebug = "forward_plus_debug.fs";
 const char* VSPathBlend = "forward_shader.vs";
 const char* FSPathBlend = "forward_shader_blend.fs";
 const char* VSPathDeferredGeo = "forward_shader.vs";
@@ -123,6 +125,12 @@ void GLWidget::setDeferredRenderMode()
 {
 	renderMode = RENDER_DEFERRED;
 	emit updateRenderMode("Deferred");
+}
+
+void GLWidget::setForwardDebugRenderMode()	
+{
+	renderMode = RENDER_GRID;
+	emit updateRenderMode("Grid");
 }
 
 void GLWidget::initializeShaderProgram(const char *vsP, const char *fsP, GLuint *sp)
@@ -259,6 +267,11 @@ void GLWidget::initLocations()
 	pLightPositionDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"pLight.position");
 	pLightAttenuationDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"pLight.attenuation");
 	pLightRadiusDeferredLightLocation = glGetUniformLocation(shaderProgramDeferredLight,"pLight.radius");
+
+	// Forward Debug Shaders
+	scanSumForwardDebugLocation = glGetUniformLocation(shaderProgramForwardPlusDebug,"scanSum");
+	maxLightsForwardDebugLocation = glGetUniformLocation(shaderProgramForwardPlusDebug,"maxTileLights");
+	screenSizeForwardDebugLocation = glGetUniformLocation(shaderProgramForwardPlusDebug,"screenSize");
 }
 
 void GLWidget::initializeLighting()
@@ -379,6 +392,7 @@ void GLWidget::initializeGL()
 	lightBillboard->Load();
 
 	initializeShaderProgram(VSPath, FSPath, &shaderProgram);
+	initializeShaderProgram(VSPathForwardPlusDebug, FSPathForwardPlusDebug, &shaderProgramForwardPlusDebug);
 	initializeShaderProgram(VSPathBlend, FSPathBlend, &shaderProgramBlend);
 	initializeShaderProgram(VSPathDeferredGeo, FSPathDeferredGeo, &shaderProgramDeferredGeo);
 	initializeShaderProgram(VSPathDeferredLight, FSPathDeferredLight, &shaderProgramDeferredLight);
@@ -480,7 +494,6 @@ void GLWidget::paintGL()
 	//drawAxis();
 
 	if (renderMode == RENDER_FORWARD){
-		//updateLightsMatrix();
 		// Set mode
 		gBufferDS->bind(GBUFFER_DEFAULT);
 		glDepthMask(GL_TRUE);
@@ -622,6 +635,10 @@ void GLWidget::paintGL()
 	else if (renderMode == RENDER_DEPTH) {
 		DrawDepthPrepass();
 	}
+	else if (renderMode == RENDER_GRID) {
+		updateLightsMatrix();
+		DrawLightsGrid();
+	}
 	else if (renderMode >= RENDER_POSITION && renderMode <= RENDER_ALL) {
 		// Set Mode
 		glUseProgram(shaderProgramDeferredDebug);
@@ -647,7 +664,6 @@ void GLWidget::paintGL()
 			glReadBuffer(GL_COLOR_ATTACHMENT0+renderMode);
 			glBlitFramebuffer(0, 0, width(), height(), 0, 0, width(), height(), GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		}
-		
 	}
 	updateFPS();
 }
@@ -716,6 +732,48 @@ void GLWidget::drawLightBillboard(pointLight l, float w)
 	glDisable(GL_TEXTURE_2D);
 	glDisable(GL_BLEND);	
 }
+/*
+uniform samplerBuffer scanSum;
+uniform int maxTileLights;
+uniform vec2 screenSize;
+
+	GLuint scanSumForwardDebugLocation;
+	GLuint maxLightsForwardDebugLocation;
+	GLuint screenSizeForwardDebugLocation;
+	std::vector<int> lightsScanSum;
+*/
+void GLWidget::DrawLightsGrid()
+{
+	// Populate texture buffer
+	int siz = lightsScanSum.size();
+	GLuint TBSS;
+	glGenBuffers(1,&TBSS);
+	glBindBuffer(GL_TEXTURE_BUFFER,TBSS);
+	glBufferData(GL_TEXTURE_BUFFER,siz*sizeof(float),&lightsScanSum[0],GL_STATIC_COPY);
+
+	GLuint LTBSS;
+	glGenTextures(1,&LTBSS);
+	glBindTexture(GL_TEXTURE_BUFFER,LTBSS);
+	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32F,TBSS);
+
+	glDeleteBuffers(1,&TBSS);
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glUseProgram(shaderProgramForwardPlusDebug);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_BUFFER, LTBSS);
+	glUniform1i(scanSumForwardDebugLocation, 1);
+	glUniform1i(maxLightsForwardDebugLocation, nLights);
+	glUniform2f(screenSizeForwardDebugLocation, width(), height());
+
+	glBegin(GL_TRIANGLE_STRIP);
+	glVertex2f(-1.0f,-1.0f);
+	glVertex2f(1.0f,-1.0f);
+	glVertex2f(-1.0f,1.0f);
+	glVertex2f(1.0f,1.0f);
+	glEnd();
+}
 
 void GLWidget::DrawDepthPrepass()
 {
@@ -753,7 +811,7 @@ void GLWidget::updateLightsMatrix()
 	const float PI = 3.1415927f;
 	float alphaRad = PI*alpha/180;
 	float betaRad = PI*beta/180;
-	glm::vec3 right = glm::vec3(cos(betaRad)*cos(alphaRad), sin(betaRad), cos(betaRad)*sin(alphaRad));
+	glm::vec3 right = glm::vec3(cos(betaRad)*cos(alphaRad), sin(betaRad), -cos(betaRad)*sin(alphaRad));
 	right = glm::normalize(right);
 	right = glm::cross(right,glm::vec3(0.0,1.0,0.0));
 	right = glm::normalize(right);
@@ -761,15 +819,16 @@ void GLWidget::updateLightsMatrix()
 	float gl_ModelViewMatrix[16];
 	glGetFloatv(GL_MODELVIEW_MATRIX, gl_ModelViewMatrix);
 	glm::mat4 m = glm::mat4(gl_ModelViewMatrix[0],gl_ModelViewMatrix[1],gl_ModelViewMatrix[2],gl_ModelViewMatrix[3],gl_ModelViewMatrix[4],gl_ModelViewMatrix[5],gl_ModelViewMatrix[6],gl_ModelViewMatrix[7],gl_ModelViewMatrix[8],gl_ModelViewMatrix[9],gl_ModelViewMatrix[10],gl_ModelViewMatrix[11],gl_ModelViewMatrix[12],gl_ModelViewMatrix[13],gl_ModelViewMatrix[14],gl_ModelViewMatrix[15]);
+	//m = glm::transpose(m);
 	float gl_ProjectionMatrix[16];
 	glGetFloatv(GL_PROJECTION_MATRIX, gl_ProjectionMatrix);
 	glm::mat4 proj = glm::mat4(gl_ProjectionMatrix[0],gl_ProjectionMatrix[1],gl_ProjectionMatrix[2],gl_ProjectionMatrix[3],gl_ProjectionMatrix[4],gl_ProjectionMatrix[5],gl_ProjectionMatrix[6],gl_ProjectionMatrix[7],gl_ProjectionMatrix[8],gl_ProjectionMatrix[9],gl_ProjectionMatrix[10],gl_ProjectionMatrix[11],gl_ProjectionMatrix[12],gl_ProjectionMatrix[13],gl_ProjectionMatrix[14],gl_ProjectionMatrix[15]);
 
 	clearLigthsMatrix();
 	for (unsigned int i = 0; i < nLights; i++) {
-		glm::vec4 c = glm::vec4(pointLightsArr[i].position.x, pointLightsArr[i].position.y, pointLightsArr[i].position.z,0.0);
+		glm::vec4 c = glm::vec4(pointLightsArr[i].position.x, pointLightsArr[i].position.y, pointLightsArr[i].position.z,1.0);
 		float r = utils::calcLightRadius(pointLightsArr[i], threshold);
-		glm::vec4 p = c+r*glm::vec4(right,0.0);
+		glm::vec4 p = c+r*glm::vec4(right,1.0);
 
 		glm::vec4 cp = proj*m*c;
 		cp = cp/cp.w;
@@ -797,7 +856,7 @@ void GLWidget::updateLightsMatrix()
 						if (pRadius > abs(cp.y-y1)) lightsMatrix[j*gLightsCol+k].push_back(i);
 					} 
 				} 
-				else if (cp.y <= y1 && cp.y > y2) { 
+				else if (cp.y >= y1 && cp.y < y2) { 
 					if (cp.x < x1) { // left
 						if (pRadius > abs(cp.x-x1)) lightsMatrix[j*gLightsCol+k].push_back(i);
 					}
@@ -820,11 +879,17 @@ void GLWidget::updateLightsMatrix()
 			}
 		}
 	}
-	/*
+
+	lightsScanSum.clear();
+	int scan = 0;
+	maxTileLights = 0;
 	for (unsigned int j = 0; j < gLightsRow; j++) {
 		for (unsigned int k = 0; k < gLightsCol; k++) {
-			lightsScanSum.push_back
-			*/
+			if (lightsMatrix[j*gLightsCol+k].size() > maxTileLights) maxTileLights = lightsMatrix[j*gLightsCol+k].size();
+			scan += lightsMatrix[j*gLightsCol+k].size();
+			lightsScanSum.push_back(scan);
+		}
+	}
 }
 
 void GLWidget::clearLigthsMatrix(){

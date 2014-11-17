@@ -45,6 +45,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	QAction *normalRenderAct = new QAction(tr("&Normal"), this);
 	QAction *allRenderAct = new QAction(tr("&All"), this);
 	QAction *depthRenderAct = new QAction(tr("&Depth"), this);
+	QAction *gridRenderAct = new QAction(tr("&Lighting Grid"), this);
 	renderMenu->addAction(forwardRenderAct);
 	renderMenu->addAction(forwardBlendRenderAct);
 	renderMenu->addAction(deferredRenderAct);
@@ -55,6 +56,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	renderMenu->addAction(allRenderAct);
 	renderMenu->addSeparator();
 	renderMenu->addAction(depthRenderAct);
+	renderMenu->addAction(gridRenderAct);
 
 	// Validators
 	QDoubleValidator *_doubleValidator = new QDoubleValidator(0.01,10.0,2);
@@ -183,10 +185,11 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	connect(forwardBlendRenderAct,SIGNAL(triggered()), glWidget, SLOT(setForwardBlendRenderMode()));
 	connect(deferredRenderAct,SIGNAL(triggered()), glWidget, SLOT(setDeferredRenderMode()));
 	connect(positionRenderAct,SIGNAL(triggered()), glWidget, SLOT(setPositionRenderMode()));
-	connect(diffuseRenderAct,SIGNAL(triggered()), glWidget, SLOT(setDiffuseRenderMode()));
+	connect(diffuseRenderAct,SIGNAL(triggered()), glWidget, SLOT(setDiffuseRenderMode())); 
 	connect(normalRenderAct,SIGNAL(triggered()), glWidget, SLOT(setNormalRenderMode()));
 	connect(allRenderAct,SIGNAL(triggered()), glWidget, SLOT(setAllRenderMode()));
 	connect(depthRenderAct,SIGNAL(triggered()), glWidget, SLOT(setDepthRenderMode()));
+	connect(gridRenderAct,SIGNAL(triggered()), glWidget, SLOT(setForwardDebugRenderMode()));
 	connect(this,SIGNAL(keyPressed(int)), glWidget, SLOT(addKey(int)));
 	connect(this,SIGNAL(keyReleased(int)), glWidget, SLOT(removeKey(int)));
 	connect(cameraSensitivityIn,SIGNAL(textChanged(QString)),glWidget,SLOT(modifyCameraSensitivity(QString)));
