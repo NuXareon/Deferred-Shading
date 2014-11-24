@@ -11,6 +11,12 @@ struct ambientLight {
     float intensity;
 };
 
+struct directionalLight {
+    vec3 color;
+    float intensity;
+    vec3 direction;
+};
+
 struct pointLight {
     vec3 color;
     float intensity;
@@ -20,6 +26,7 @@ struct pointLight {
 };
 
 uniform ambientLight aLight;
+uniform directionalLight dLight;
 uniform pointLight pointLights[N_MAX_LIGHTS];
 uniform int nLights;
 uniform sampler2D sampler;
@@ -27,9 +34,14 @@ uniform float zOffset;
 
 void main()
 {
+    vec3 normal = normalize(norm0);
     // Ambient Light
     vec4 ambientColor = vec4(aLight.color,1.0)*aLight.intensity;
-    vec3 normal = normalize(norm0);
+    //Directional Light
+    float dLightDiffuseFactor = dot(normal, -dLight.direction);
+    vec4 dLightDiffuseColor;
+    if (dLightDiffuseFactor > 0.0) dLightDiffuseColor = vec4(dLight.color,1.0)*dLight.intensity*dLightDiffuseFactor;
+    else dLightDiffuseColor = vec4(0,0,0,0);
     // Point Lights
     vec4 pTotalLightDiffuseColor = vec4(0.0,0.0,0.0,0.0);
     for (int i = 0; i < nLights ; i++) {
@@ -51,6 +63,6 @@ void main()
     }
     
     gl_FragColor =  texture2D(sampler, texCoord0.xy)*
-                    (ambientColor+pTotalLightDiffuseColor);
+                    (ambientColor+dLightDiffuseColor+pTotalLightDiffuseColor);
     gl_FragDepth = gl_FragCoord.z+zOffset;
 }

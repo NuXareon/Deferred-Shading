@@ -204,6 +204,9 @@ void GLWidget::initLocations()
 	samplerLocation = glGetUniformLocation(shaderProgram,"sampler");
 	ambientColorLocation = glGetUniformLocation(shaderProgram,"aLight.color");
 	ambientIntensityLocation = glGetUniformLocation(shaderProgram,"aLight.intensity");
+	directionalColorLocation = glGetUniformLocation(shaderProgram,"dLight.color");
+	directionalIntensityLocation = glGetUniformLocation(shaderProgram,"dLight.intensity");
+	directionalDirectionLocation = glGetUniformLocation(shaderProgram,"dLight.direction");
 	lightsTexBufferLocation = glGetUniformLocation(shaderProgram,"lightsTexBuffer");
 	depthDebugTextureLocation = glGetUniformLocation(shaderProgramForwardDepthDebug,"texture");
 	nLightsLocation = glGetUniformLocation(shaderProgram,"nLights");
@@ -216,9 +219,12 @@ void GLWidget::initLocations()
 	zOffsetBlendLocation = glGetUniformLocation(shaderProgramBlend,"zOffset");
 	ambientColorBlendLocation = glGetUniformLocation(shaderProgramBlend,"aLight.color");
 	ambientIntensityBlendLocation = glGetUniformLocation(shaderProgramBlend,"aLight.intensity");
+	directionalColorBlendLocation = glGetUniformLocation(shaderProgramBlend,"dLight.color");
+	directionalIntensityBlendLocation = glGetUniformLocation(shaderProgramBlend,"dLight.intensity");
+	directionalDirectionBlendLocation = glGetUniformLocation(shaderProgramBlend,"dLight.direction"); 
 	nLightsBlendLocation = glGetUniformLocation(shaderProgramBlend,"nLights");
 
-	// Forward Point Lights
+	// Forward Blend Point Lights
 	std::stringstream sstm;
 	std::string uniformName;
 	std::string pl_str = "pointLights[";
@@ -308,13 +314,6 @@ void GLWidget::initializeLighting()
 		p.intensity.i_ = pRadius;
 		pointLightsArr[i] = p;
 	}
-	
-	// Directional + Ambient lights (remove?)
-	float wColor[] = {1.0f,1.0f,1.0f};
-	float dDirection[] = {-0.577f,-0.577f,-0.577f};
-	
-	aLight = ambientLight(wColor, 0.0f);
-	dLight = directionalLight(wColor, 0.0f, dDirection);
 
 	// Populate texture buffer
 	GLuint TB;
@@ -374,8 +373,9 @@ void GLWidget::importLighting(std::ifstream& ifs)
 
 void GLWidget::initializeGL()
 {
+	// GLEW
 	glewInit();
-
+	// OpenGL
     qglClearColor(QColor::fromRgb(0,0,0));
 	glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -385,12 +385,12 @@ void GLWidget::initializeGL()
 	#elif __linux__
 	utils::enableVSyncLinux(0);
 	#endif
-
+	// Billboards
 	glGenTextures(1,&LTB);
 	loadModel(modelPath);
 	lightBillboard = new Texture(GL_TEXTURE_2D, "../DeferredShading/billboard.png");
 	lightBillboard->Load();
-
+	// Shaders
 	initializeShaderProgram(VSPath, FSPath, &shaderProgram);
 	initializeShaderProgram(VSPathForwardPlusDebug, FSPathForwardPlusDebug, &shaderProgramForwardPlusDebug);
 	initializeShaderProgram(VSPathBlend, FSPathBlend, &shaderProgramBlend);
@@ -400,10 +400,16 @@ void GLWidget::initializeGL()
 	initializeShaderProgram(VSPathForwardDepthDebug, FSPathForwardDepthDebug, &shaderProgramForwardDepthDebug);
 	initializeShaderProgram(VSPathDeferredDepth, FSPathDeferredDepth, &shaderProgramDepthSet);
 	initLocations();
-	
+	// FPS count
 	frames = 0;
 	t = new QTime();
 	t->start();
+	// Directional + Ambient lights
+	float wColor[] = {1.0f,1.0f,1.0f};
+	float dDirection[] = {-0.577f,-0.577f,-0.577f};
+	
+	aLight = ambientLight(wColor, 0.015f);
+	dLight = directionalLight(wColor, 0.03f, dDirection);
 }
 
 void GLWidget::resizeGL(int width, int height)
@@ -429,12 +435,23 @@ void GLWidget::setLightUniforms()
 	// Ambient light parameters
 	glUniform3f(ambientColorLocation, aLight.color.r, aLight.color.g, aLight.color.b);
 	glUniform1f(ambientIntensityLocation,aLight.intensity);
-
+	// Directional light parameters
+	glUniform3f(directionalColorLocation, dLight.color.r, dLight.color.g, dLight.color.b);
+	glUniform1f(directionalIntensityLocation, dLight.intensity);
+	glUniform3f(directionalDirectionLocation, dLight.direction.x, dLight.direction.y, dLight.direction.z);
+	// Point light parameters
 	glUniform1i(nLightsLocation, nLights);
 }
 
 void GLWidget::setLightUniformsBlend(unsigned int l, unsigned int h, float offset)
 {	
+	// Ambient Light
+	glUniform3f(ambientColorBlendLocation, aLight.color.r, aLight.color.g, aLight.color.b);
+	glUniform1f(ambientIntensityBlendLocation,aLight.intensity);
+	// Directioal Light
+	glUniform3f(directionalColorBlendLocation, dLight.color.r, dLight.color.g, dLight.color.b);
+	glUniform1f(directionalIntensityBlendLocation, dLight.intensity);
+	glUniform3f(directionalDirectionBlendLocation, dLight.direction.x, dLight.direction.y, dLight.direction.z);
 	// Point lights parameters (note: the fragment shader allways uses the n first lights)
 	for (unsigned int i = l; i < h; ++i) {
 		glUniform3f(pointLightLocations[i-l].color, pointLightsArr[i].color.r, pointLightsArr[i].color.g, pointLightsArr[i].color.b);

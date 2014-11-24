@@ -23,16 +23,22 @@ struct pointLight {
 };
 
 uniform ambientLight aLight;
+uniform directionalLight dLight;
 uniform int nLights;
 uniform sampler2D sampler;
 uniform samplerBuffer lightsTexBuffer;
 
 void main()
 {
+    vec3 normal = normalize(norm0);
     //Ambient Light
     vec4 ambientColor = vec4(aLight.color,1.0)*aLight.intensity;
+    //Directional Light
+    float dLightDiffuseFactor = dot(normal, -dLight.direction);
+    vec4 dLightDiffuseColor;
+    if (dLightDiffuseFactor > 0.0) dLightDiffuseColor = vec4(dLight.color,1.0)*dLight.intensity*dLightDiffuseFactor;
+    else dLightDiffuseColor = vec4(0,0,0,0);
     //Point Lights
-    vec3 normal = normalize(norm0);
     vec4 pTotalLightDiffuseColor = vec4(0.0,0.0,0.0,0.0);
     for (int i = 0; i < nLights ; i++) {
         float lRadius = texelFetch(lightsTexBuffer,i*4+1).y;
@@ -59,5 +65,5 @@ void main()
     }
     
     gl_FragColor =  texture2D(sampler, texCoord0.xy)*
-                    (ambientColor+pTotalLightDiffuseColor);
+                    (ambientColor+dLightDiffuseColor+pTotalLightDiffuseColor);
 }

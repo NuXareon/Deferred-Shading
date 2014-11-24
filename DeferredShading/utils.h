@@ -109,7 +109,7 @@ struct ambientLight{
 };
 
 struct directionalLight{
-		struct {
+	struct {
 		float r; float g; float b;
 	} color;
 	float intensity;

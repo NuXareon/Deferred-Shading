@@ -94,6 +94,9 @@ private:
 	GLuint zOffsetBlendLocation;
 	GLuint ambientColorBlendLocation;
 	GLuint ambientIntensityBlendLocation;
+	GLuint directionalColorBlendLocation;
+	GLuint directionalIntensityBlendLocation;
+	GLuint directionalDirectionBlendLocation;
 	GLuint nLightsBlendLocation;
 
 	GLuint positionDeferredLocation;
@@ -145,7 +148,7 @@ private:
 	GLuint nLightsLocation;
 	// Lights
 	ambientLight aLight;								// Global ambient light
-	directionalLight dLight;							// Global directional light (will be removed at some point probably)
+	directionalLight dLight;							// Global directional light
 	pointLight pointLightsArr[N_MAX_LIGHTS];			// Array with the maximum number of lights
 	unsigned int nLights;								// Actual number of lights (nLights < N_MAX_LIGHTS)
 	float lightingBoundingBoxScale;
