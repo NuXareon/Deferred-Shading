@@ -147,5 +147,8 @@
     <None Include="forward_plus_debug.fs">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="deferred_directional_light.fs">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

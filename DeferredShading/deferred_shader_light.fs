@@ -26,7 +26,7 @@ void main()
         vec3 normal = texture2D(normalBuffer,screenLoc).xyz;
         normal = normalize(normal);
         vec3 diffuse = texture2D(diffuseBuffer,screenLoc).xyz;
-        // Calc light here
+
         vec4 pTotalLightDiffuseColor = vec4(0.0,0.0,0.0,0.0);
         vec3 pDirection = position - pLight.position;
         float pDistance = length(pDirection);

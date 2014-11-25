@@ -73,6 +73,7 @@ private:
 	GLuint shaderProgramBlend;
 	GLuint shaderProgramDeferredGeo;
 	GLuint shaderProgramDeferredLight;
+	GLuint shaderProgramDeferredDirectionalLight;
 	GLuint shaderProgramDeferredDebug;
 	GLuint shaderProgramForwardDepthDebug;
 	GLuint shaderProgramDepthSet;
@@ -80,13 +81,21 @@ private:
 
 	renderModeType renderMode;
 
+	// --- Locations ---
+	// Forward
 	GLuint positionLocation;
 	GLuint texCoordLocation;
 	GLuint normLocation;
 	GLuint samplerLocation;
 	GLuint depthDebugTextureLocation;
 	GLuint lightsTexBufferLocation;
+	GLuint ambientColorLocation;
+	GLuint ambientIntensityLocation;
+	GLuint directionalColorLocation;
+	GLuint directionalIntensityLocation;
+	GLuint directionalDirectionLocation;
 
+	// Forward blend
 	GLuint positionBlendLocation;
 	GLuint texCoordBlendLocation;
 	GLuint normBlendLocation;
@@ -99,14 +108,7 @@ private:
 	GLuint directionalDirectionBlendLocation;
 	GLuint nLightsBlendLocation;
 
-	GLuint positionDeferredLocation;
-	GLuint texCoordDeferredLocation;
-	GLuint normDeferredLocation;
-	GLuint samplerDeferredLocation;
-	GLuint minPDeferredLocation;
-	GLuint maxPDeferredLocation;
-	GLuint depthSetSamplerLocation;
-
+	// Deferred debug
 	GLuint positionDeferredDebugLocation;
 	GLuint texCoordDeferredDebugLocation;
 	GLuint normDeferredDebugLocation;
@@ -114,11 +116,14 @@ private:
 	GLuint minPDeferredDebugLocation;
 	GLuint maxPDeferredDebugLocation;
 
+	// Deferred Geometry
 	GLuint positionDeferredGeoLocation;
 	GLuint texCoordDeferredGeoLocation;
 	GLuint normDeferredGeoLocation;
 	GLuint samplerDeferredGeoLocation;
+	GLuint depthSetSamplerLocation;
 
+	// Deferred Lighting
 	GLuint screenSizeDeferredLightLocation;
 	GLuint positionBufferDeferredLightLocation;
 	GLuint normalBufferDeferredLightLocation;
@@ -128,16 +133,21 @@ private:
 	GLuint pLightPositionDeferredLightLocation;
 	GLuint pLightAttenuationDeferredLightLocation;
 	GLuint pLightRadiusDeferredLightLocation;
-	
+
+	// Deferred directional light
+	GLuint ambientColorDirectionalLocation;
+	GLuint ambientIntensityDirectionalLocation;
+	GLuint directionalColorDirectionalLocation;
+	GLuint directionalIntisityDirectionalLocation;
+	GLuint directionaldirectionDirectionalLocation;
+	GLuint normalBufferDirectionalLocation;
+	GLuint diffuseBufferDirectionalLocation;
+
+	// Forward plus debug
 	GLuint scanSumForwardDebugLocation;
 	GLuint maxLightsForwardDebugLocation;
 	GLuint screenSizeForwardDebugLocation;
 
-	GLuint ambientColorLocation;
-	GLuint ambientIntensityLocation;
-	GLuint directionalColorLocation;
-	GLuint directionalIntensityLocation;
-	GLuint directionalDirectionLocation;
 	struct {
 		GLuint color;
 		GLuint intensity;
@@ -181,6 +191,7 @@ private:
 	void drawLightBillboard(pointLight l, float width);	// Draws a billboard for a point light
 	void DrawDepthPrepass();
 	void DrawLightsGrid();
+	void directionalLightPass();
 	void updateLightsMatrix();
 	void clearLigthsMatrix();
 };

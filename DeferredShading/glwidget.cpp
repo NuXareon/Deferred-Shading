@@ -16,6 +16,8 @@ const char* VSPathForwardDepthDebug = "forward_shader_depth_debug.vs";
 const char* FSPathForwardDepthDebug = "forward_shader_depth_debug.fs";
 const char* VSPathDeferredDepth = "forward_shader_depth_debug.vs";
 const char* FSPathDeferredDepth = "deferred_shader_set_depth.fs";
+const char* VSPathDeferredDirectionalLight = "forward_shader_depth_debug.vs";
+const char* FSPathDeferredDirectionalLight = "deferred_directional_light.fs";
 
 GLWidget::GLWidget(QWidget *parent) :
     QGLWidget()
@@ -278,6 +280,15 @@ void GLWidget::initLocations()
 	scanSumForwardDebugLocation = glGetUniformLocation(shaderProgramForwardPlusDebug,"scanSum");
 	maxLightsForwardDebugLocation = glGetUniformLocation(shaderProgramForwardPlusDebug,"maxTileLights");
 	screenSizeForwardDebugLocation = glGetUniformLocation(shaderProgramForwardPlusDebug,"screenSize");
+
+	// Deferred Directional light
+	ambientColorDirectionalLocation = glGetUniformLocation(shaderProgramDeferredDirectionalLight,"aLight.color");
+	ambientIntensityDirectionalLocation = glGetUniformLocation(shaderProgramDeferredDirectionalLight,"aLight.intensity");
+	directionalColorDirectionalLocation = glGetUniformLocation(shaderProgramDeferredDirectionalLight,"dLight.color");
+	directionalIntisityDirectionalLocation = glGetUniformLocation(shaderProgramDeferredDirectionalLight,"dLight.intensity");
+	directionaldirectionDirectionalLocation = glGetUniformLocation(shaderProgramDeferredDirectionalLight,"dLight.direction");
+	normalBufferDirectionalLocation = glGetUniformLocation(shaderProgramDeferredDirectionalLight,"normalBuffer");
+	diffuseBufferDirectionalLocation = glGetUniformLocation(shaderProgramDeferredDirectionalLight,"diffuseBuffer");
 }
 
 void GLWidget::initializeLighting()
@@ -396,6 +407,7 @@ void GLWidget::initializeGL()
 	initializeShaderProgram(VSPathBlend, FSPathBlend, &shaderProgramBlend);
 	initializeShaderProgram(VSPathDeferredGeo, FSPathDeferredGeo, &shaderProgramDeferredGeo);
 	initializeShaderProgram(VSPathDeferredLight, FSPathDeferredLight, &shaderProgramDeferredLight);
+	initializeShaderProgram(VSPathDeferredDirectionalLight, FSPathDeferredDirectionalLight, &shaderProgramDeferredDirectionalLight);
 	initializeShaderProgram(VSPathDeferredDebug, FSPathDeferredDebug, &shaderProgramDeferredDebug);
 	initializeShaderProgram(VSPathForwardDepthDebug, FSPathForwardDepthDebug, &shaderProgramForwardDepthDebug);
 	initializeShaderProgram(VSPathDeferredDepth, FSPathDeferredDepth, &shaderProgramDepthSet);
@@ -408,8 +420,8 @@ void GLWidget::initializeGL()
 	float wColor[] = {1.0f,1.0f,1.0f};
 	float dDirection[] = {-0.577f,-0.577f,-0.577f};
 	
-	aLight = ambientLight(wColor, 0.015f);
-	dLight = directionalLight(wColor, 0.03f, dDirection);
+	aLight = ambientLight(wColor, 0.02f);
+	dLight = directionalLight(wColor, 0.035f, dDirection);
 }
 
 void GLWidget::resizeGL(int width, int height)
@@ -620,6 +632,9 @@ void GLWidget::paintGL()
 		// Draw Lights
 		for (unsigned int i = 0; i < nLights; i++) drawPointLight(pointLightsArr[i]);
 
+		glUseProgram(shaderProgramDeferredDirectionalLight);
+		directionalLightPass();
+
 		glDisable(GL_BLEND);
 		glEnable(GL_DEPTH_TEST);
 		glDepthMask(GL_TRUE);
@@ -816,6 +831,28 @@ void GLWidget::DrawDepthPrepass()
 		glVertex2f(-1.0f,1.0f);
 		glVertex2f(1.0f,1.0f);
 		glEnd();
+}
+
+void GLWidget::directionalLightPass()
+{
+	// Ambient Light
+	glUniform3f(ambientColorDirectionalLocation, aLight.color.r, aLight.color.g, aLight.color.b);
+	glUniform1f(ambientIntensityDirectionalLocation,aLight.intensity);
+	// Directioal Light
+	glUniform3f(directionalColorDirectionalLocation, dLight.color.r, dLight.color.g, dLight.color.b);
+	glUniform1f(directionalIntisityDirectionalLocation, dLight.intensity);
+	glUniform3f(directionaldirectionDirectionalLocation, dLight.direction.x, dLight.direction.y, dLight.direction.z);
+	// G-Buffer
+	glUniform1i(normalBufferDirectionalLocation, gbuffer::GBUFFER_NORMAL);
+	glUniform1i(diffuseBufferDirectionalLocation, gbuffer::GBUFFER_DIFFUSE);
+
+	// Draw
+	glBegin(GL_TRIANGLE_STRIP);
+	glVertex2f(-1.0f,-1.0f);
+	glVertex2f(1.0f,-1.0f);
+	glVertex2f(-1.0f,1.0f);
+	glVertex2f(1.0f,1.0f);
+	glEnd();
 }
 
 void GLWidget::updateLightsMatrix()
