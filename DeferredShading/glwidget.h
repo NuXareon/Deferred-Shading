@@ -36,6 +36,7 @@ public slots:
 	void setDepthRenderMode();
 	void setDeferredRenderMode();
 	void setForwardDebugRenderMode();
+	void setForwardPlusRenderMode();
 	// Misc.
 	void loadModel(std::string path);					// Loads a model located on path.
 	void genLightning(int n);							// Modifies nLights and regenerates lightning, see initializeLightning().
@@ -78,6 +79,7 @@ private:
 	GLuint shaderProgramForwardDepthDebug;
 	GLuint shaderProgramDepthSet;
 	GLuint shaderProgramForwardPlusDebug;
+	GLuint shaderProgramForwardPlus;
 
 	renderModeType renderMode;
 
@@ -107,6 +109,14 @@ private:
 	GLuint directionalIntensityBlendLocation;
 	GLuint directionalDirectionBlendLocation;
 	GLuint nLightsBlendLocation;
+	struct {
+		GLuint color;
+		GLuint intensity;
+		GLuint radius;
+		GLuint position;
+		GLuint attenuation;
+	} pointLightLocations[FORWARD_LIGHTS_INTERVAL];
+	GLuint nLightsLocation;
 
 	// Deferred debug
 	GLuint positionDeferredDebugLocation;
@@ -148,14 +158,21 @@ private:
 	GLuint maxLightsForwardDebugLocation;
 	GLuint screenSizeForwardDebugLocation;
 
-	struct {
-		GLuint color;
-		GLuint intensity;
-		GLuint radius;
-		GLuint position;
-		GLuint attenuation;
-	} pointLightLocations[FORWARD_LIGHTS_INTERVAL];
-	GLuint nLightsLocation;
+	// Forward Plus
+	GLuint positionForwardPlusLocation;
+	GLuint texCoordForwardPlusLocation;
+	GLuint normForwardPlusLocation;
+	GLuint screenSizeForwardPlusLocation;
+	GLuint ambientLightColorForwardPlusLocation;
+	GLuint ambientLightIntensityForwardPlusLocation;
+	GLuint directionalLightColorForwardPlusLocation;
+	GLuint directionalLightIntensityForwardPlusLocation;
+	GLuint directionalLightDirectionForwardPlusLocation;
+	GLuint samplerForwardPlusLocation;
+	GLuint lightsTexBufferForwardPlusLocation;
+	GLuint lightsGridForwardPlusLocation;
+	GLuint scanSumForwardPlusLocation;
+
 	// Lights
 	ambientLight aLight;								// Global ambient light
 	directionalLight dLight;							// Global directional light
@@ -169,13 +186,13 @@ private:
 	bool lBillboards;
 	unsigned int gLightsCol, gLightsRow;
 	std::vector<std::vector<int> > lightsMatrix;
-	std::vector<float> lightsScanSum;
+	std::vector<int> lightsScanSum;
 	unsigned int maxTileLights;
 	// Buffers
 	gbuffer *gBufferDS;									// G-buffer: framebuffer with the textures we will use for deferred shading
 	depthBuffer *dBufferFR;								// Depth Buffer: framebuffer used for the depth prepass in the forward reder
 	depthBuffer *dBufferDS;
-	GLuint LTB;											// Texture buffer containing the lighting information for forward rendering
+	GLuint LTB,LGTB,SSTB;								// Texture buffer containing the lighting information for forward rendering
 	// Functions
 	void initializeLighting();							// Initializes nLights point lights with pseudo-random attributes.
 	void importLighting(std::ifstream& ifs);
@@ -186,6 +203,7 @@ private:
 	void initLocations();								// Initializes the lovation variables from the shaders.
 	void setLightUniforms();							// Sends lightning information to the shaders. 
 	void setLightPassUniforms();						// Sends gBuffer infor to the shaders
+	void setForwardPlusUniforms();
 	void drawPointLight(pointLight l);					// Draws a sphere equivalent to a point light
 	void setLightUniformsBlend(unsigned int l, unsigned int h, float offset);
 	void drawLightBillboard(pointLight l, float width);	// Draws a billboard for a point light
@@ -194,4 +212,6 @@ private:
 	void directionalLightPass();
 	void updateLightsMatrix();
 	void clearLigthsMatrix();
+
+	int arr[1800000];
 };

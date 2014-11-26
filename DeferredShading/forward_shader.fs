@@ -15,13 +15,6 @@ struct directionalLight {
     vec3 direction;
 };
 
-struct pointLight {
-    vec3 color;
-    float intensity;
-    vec3 position;
-    vec3 attenuation;
-};
-
 uniform ambientLight aLight;
 uniform directionalLight dLight;
 uniform int nLights;

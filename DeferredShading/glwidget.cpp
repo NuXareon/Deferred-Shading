@@ -18,6 +18,8 @@ const char* VSPathDeferredDepth = "forward_shader_depth_debug.vs";
 const char* FSPathDeferredDepth = "deferred_shader_set_depth.fs";
 const char* VSPathDeferredDirectionalLight = "forward_shader_depth_debug.vs";
 const char* FSPathDeferredDirectionalLight = "deferred_directional_light.fs";
+const char* VSPathForwardPlus = "forward_shader.vs";
+const char* FSPathForwardPlus = "forward_plus_shader.fs";
 
 GLWidget::GLWidget(QWidget *parent) :
     QGLWidget()
@@ -133,6 +135,12 @@ void GLWidget::setForwardDebugRenderMode()
 {
 	renderMode = RENDER_GRID;
 	emit updateRenderMode("Grid");
+}
+
+void GLWidget::setForwardPlusRenderMode()
+{
+	renderMode = RENDER_FORWARD_PLUS;
+	emit updateRenderMode("Forward+");
 }
 
 void GLWidget::initializeShaderProgram(const char *vsP, const char *fsP, GLuint *sp)
@@ -289,6 +297,21 @@ void GLWidget::initLocations()
 	directionaldirectionDirectionalLocation = glGetUniformLocation(shaderProgramDeferredDirectionalLight,"dLight.direction");
 	normalBufferDirectionalLocation = glGetUniformLocation(shaderProgramDeferredDirectionalLight,"normalBuffer");
 	diffuseBufferDirectionalLocation = glGetUniformLocation(shaderProgramDeferredDirectionalLight,"diffuseBuffer");
+
+	// Forward Plus
+	positionForwardPlusLocation = glGetAttribLocation(shaderProgramForwardPlus,"position");;
+	texCoordForwardPlusLocation = glGetAttribLocation(shaderProgramForwardPlus,"texCoord");;
+	normForwardPlusLocation = glGetAttribLocation(shaderProgramForwardPlus,"norm");;
+	screenSizeForwardPlusLocation = glGetUniformLocation(shaderProgramForwardPlus,"screenSize");
+	ambientLightColorForwardPlusLocation = glGetUniformLocation(shaderProgramForwardPlus,"aLight.color");
+	ambientLightIntensityForwardPlusLocation = glGetUniformLocation(shaderProgramForwardPlus,"aLight.intensity");
+	directionalLightColorForwardPlusLocation = glGetUniformLocation(shaderProgramForwardPlus,"dLight.color");
+	directionalLightIntensityForwardPlusLocation = glGetUniformLocation(shaderProgramForwardPlus,"dLight.intensity");
+	directionalLightDirectionForwardPlusLocation = glGetUniformLocation(shaderProgramForwardPlus,"dLight.direction");
+	samplerForwardPlusLocation = glGetUniformLocation(shaderProgramForwardPlus,"sampler");
+	lightsTexBufferForwardPlusLocation = glGetUniformLocation(shaderProgramForwardPlus,"lightsTexBuffer");
+	lightsGridForwardPlusLocation = glGetUniformLocation(shaderProgramForwardPlus,"lightsGrid");
+	scanSumForwardPlusLocation = glGetUniformLocation(shaderProgramForwardPlus,"scanSum");
 }
 
 void GLWidget::initializeLighting()
@@ -398,6 +421,8 @@ void GLWidget::initializeGL()
 	#endif
 	// Billboards
 	glGenTextures(1,&LTB);
+	glGenTextures(1,&LGTB);
+	glGenTextures(1,&SSTB);
 	loadModel(modelPath);
 	lightBillboard = new Texture(GL_TEXTURE_2D, "../DeferredShading/billboard.png");
 	lightBillboard->Load();
@@ -411,6 +436,7 @@ void GLWidget::initializeGL()
 	initializeShaderProgram(VSPathDeferredDebug, FSPathDeferredDebug, &shaderProgramDeferredDebug);
 	initializeShaderProgram(VSPathForwardDepthDebug, FSPathForwardDepthDebug, &shaderProgramForwardDepthDebug);
 	initializeShaderProgram(VSPathDeferredDepth, FSPathDeferredDepth, &shaderProgramDepthSet);
+	initializeShaderProgram(VSPathForwardPlus, FSPathForwardPlus, &shaderProgramForwardPlus);
 	initLocations();
 	// FPS count
 	frames = 0;
@@ -482,6 +508,28 @@ void GLWidget::setLightPassUniforms()
 	glUniform1i(normalBufferDeferredLightLocation, gbuffer::GBUFFER_NORMAL);
 	glUniform1i(diffuseBufferDeferredLightLocation, gbuffer::GBUFFER_DIFFUSE);
 	glUniform2f(screenSizeDeferredLightLocation, width(), height());
+}
+
+void GLWidget::setForwardPlusUniforms() 
+{
+	glUniform2f(screenSizeForwardPlusLocation, width(), height());
+	// Ambient light parameters
+	glUniform3f(ambientLightColorForwardPlusLocation, aLight.color.r, aLight.color.g, aLight.color.b);
+	glUniform1f(ambientLightIntensityForwardPlusLocation,aLight.intensity);
+	// Directional light parameters
+	glUniform3f(directionalLightColorForwardPlusLocation, dLight.color.r, dLight.color.g, dLight.color.b);
+	glUniform1f(directionalLightIntensityForwardPlusLocation, dLight.intensity);
+	glUniform3f(directionalLightDirectionForwardPlusLocation, dLight.direction.x, dLight.direction.y, dLight.direction.z);
+	// Buffer textures
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_BUFFER, LTB);
+	glUniform1i(lightsTexBufferForwardPlusLocation, 1);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_BUFFER, LGTB);
+	glUniform1i(lightsGridForwardPlusLocation, 2);	
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_BUFFER, SSTB);
+	glUniform1i(scanSumForwardPlusLocation, 3);
 }
 
 void drawAxis()
@@ -664,6 +712,18 @@ void GLWidget::paintGL()
 			glDepthMask(GL_TRUE);
 		}
 	}
+	else if (renderMode == RENDER_FORWARD_PLUS) {
+		gBufferDS->bind(GBUFFER_DEFAULT);
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glUseProgram(shaderProgramForwardPlus);
+
+		updateLightsMatrix();
+
+		setForwardPlusUniforms();
+		mainMesh->Render(positionForwardPlusLocation, texCoordForwardPlusLocation, normForwardPlusLocation, samplerForwardPlusLocation);
+	}
 	else if (renderMode == RENDER_DEPTH) {
 		DrawDepthPrepass();
 	}
@@ -781,12 +841,12 @@ void GLWidget::DrawLightsGrid()
 	GLuint TBSS;
 	glGenBuffers(1,&TBSS);
 	glBindBuffer(GL_TEXTURE_BUFFER,TBSS);
-	glBufferData(GL_TEXTURE_BUFFER,siz*sizeof(float),&lightsScanSum[0],GL_STATIC_COPY);
+	glBufferData(GL_TEXTURE_BUFFER,siz*sizeof(int),&lightsScanSum[0],GL_STATIC_COPY);
 
 	GLuint LTBSS;
 	glGenTextures(1,&LTBSS);
 	glBindTexture(GL_TEXTURE_BUFFER,LTBSS);
-	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32F,TBSS);
+	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,TBSS);
 
 	glDeleteBuffers(1,&TBSS);
 
@@ -873,7 +933,7 @@ void GLWidget::updateLightsMatrix()
 	float gl_ModelViewMatrix[16];
 	glGetFloatv(GL_MODELVIEW_MATRIX, gl_ModelViewMatrix);
 	glm::mat4 m = glm::mat4(gl_ModelViewMatrix[0],gl_ModelViewMatrix[1],gl_ModelViewMatrix[2],gl_ModelViewMatrix[3],gl_ModelViewMatrix[4],gl_ModelViewMatrix[5],gl_ModelViewMatrix[6],gl_ModelViewMatrix[7],gl_ModelViewMatrix[8],gl_ModelViewMatrix[9],gl_ModelViewMatrix[10],gl_ModelViewMatrix[11],gl_ModelViewMatrix[12],gl_ModelViewMatrix[13],gl_ModelViewMatrix[14],gl_ModelViewMatrix[15]);
-	//m = glm::transpose(m);
+
 	float gl_ProjectionMatrix[16];
 	glGetFloatv(GL_PROJECTION_MATRIX, gl_ProjectionMatrix);
 	glm::mat4 proj = glm::mat4(gl_ProjectionMatrix[0],gl_ProjectionMatrix[1],gl_ProjectionMatrix[2],gl_ProjectionMatrix[3],gl_ProjectionMatrix[4],gl_ProjectionMatrix[5],gl_ProjectionMatrix[6],gl_ProjectionMatrix[7],gl_ProjectionMatrix[8],gl_ProjectionMatrix[9],gl_ProjectionMatrix[10],gl_ProjectionMatrix[11],gl_ProjectionMatrix[12],gl_ProjectionMatrix[13],gl_ProjectionMatrix[14],gl_ProjectionMatrix[15]);
@@ -944,6 +1004,33 @@ void GLWidget::updateLightsMatrix()
 			lightsScanSum.push_back(scan);
 		}
 	}
+
+	int i = 0;
+	for (std::vector<std::vector<int> >::iterator it = lightsMatrix.begin(); it != lightsMatrix.end(); ++it) {
+		for (std::vector<int>::iterator it2 = it->begin(); it2 != it->end(); ++it2) {
+			arr[i] = *it2;
+			++i;
+		}
+	}
+
+	// Populate texture buffer
+	GLuint TB[2];
+	glGenBuffers(2,TB);
+
+	glBindBuffer(GL_TEXTURE_BUFFER,TB[0]);
+	glBufferData(GL_TEXTURE_BUFFER,sizeof(arr),&arr[0],GL_DYNAMIC_COPY);
+
+	glBindTexture(GL_TEXTURE_BUFFER,LGTB);
+	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,TB[0]);
+	
+	int siz = lightsScanSum.size();
+	glBindBuffer(GL_TEXTURE_BUFFER,TB[1]);
+	glBufferData(GL_TEXTURE_BUFFER,siz*sizeof(int),&lightsScanSum[0],GL_DYNAMIC_COPY);
+
+	glBindTexture(GL_TEXTURE_BUFFER,SSTB);
+	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,TB[1]);
+
+	glDeleteBuffers(2,TB);
 }
 
 void GLWidget::clearLigthsMatrix(){

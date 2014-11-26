@@ -150,5 +150,8 @@
     <None Include="deferred_directional_light.fs">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="forward_plus_shader.fs">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

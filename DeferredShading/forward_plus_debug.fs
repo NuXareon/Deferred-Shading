@@ -20,7 +20,6 @@ uniform vec2 screenSize;
 void main(){
     float nCol = ceil(screenSize.x/TILE_SIZE);
     float nRow = ceil(screenSize.y/TILE_SIZE);
-    float nTiles = nRow*nCol;
     float xTile = floor(texCoord.x*screenSize.x/TILE_SIZE);
     float yTile = floor(texCoord.y*screenSize.y/TILE_SIZE);
     int tile = int(xTile+nCol*yTile);
