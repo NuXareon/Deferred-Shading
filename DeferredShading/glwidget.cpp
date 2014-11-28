@@ -837,6 +837,7 @@ uniform vec2 screenSize;
 void GLWidget::DrawLightsGrid()
 {
 	// Populate texture buffer
+	/*
 	int siz = lightsScanSum.size();
 	GLuint TBSS;
 	glGenBuffers(1,&TBSS);
@@ -849,12 +850,12 @@ void GLWidget::DrawLightsGrid()
 	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,TBSS);
 
 	glDeleteBuffers(1,&TBSS);
-
+	*/
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(shaderProgramForwardPlusDebug);
 
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_BUFFER, LTBSS);
+	glBindTexture(GL_TEXTURE_BUFFER, SSTB);
 	glUniform1i(scanSumForwardDebugLocation, 1);
 	glUniform1i(maxLightsForwardDebugLocation, nLights);
 	glUniform2f(screenSizeForwardDebugLocation, width(), height());
@@ -942,7 +943,8 @@ void GLWidget::updateLightsMatrix()
 	for (unsigned int i = 0; i < nLights; i++) {
 		glm::vec4 c = glm::vec4(pointLightsArr[i].position.x, pointLightsArr[i].position.y, pointLightsArr[i].position.z,1.0);
 		float r = utils::calcLightRadius(pointLightsArr[i], threshold);
-		glm::vec4 p = c+r*glm::vec4(right,1.0);
+		glm::vec4 p = c+r*glm::vec4(right,0.0);
+		p.w=1.0f;
 
 		glm::vec4 cp = proj*m*c;
 		cp = cp/cp.w;
@@ -964,31 +966,31 @@ void GLWidget::updateLightsMatrix()
 						lightsMatrix[j*gLightsCol+k].push_back(i);
 					} 
 					else if (cp.y > y2) { // down (r> y-y2)
-						if (pRadius > abs(cp.y-y2)) lightsMatrix[j*gLightsCol+k].push_back(i);
+						if (pRadius >= abs(cp.y-y2)) lightsMatrix[j*gLightsCol+k].push_back(i);
 					} 
 					else if (cp.y < y1) { // up (r> y-y1)
-						if (pRadius > abs(cp.y-y1)) lightsMatrix[j*gLightsCol+k].push_back(i);
+						if (pRadius >= abs(cp.y-y1)) lightsMatrix[j*gLightsCol+k].push_back(i);
 					} 
 				} 
 				else if (cp.y >= y1 && cp.y < y2) { 
 					if (cp.x < x1) { // left
-						if (pRadius > abs(cp.x-x1)) lightsMatrix[j*gLightsCol+k].push_back(i);
+						if (pRadius >= abs(cp.x-x1)) lightsMatrix[j*gLightsCol+k].push_back(i);
 					}
 					else if (cp.x > x2) { // right
-						if (pRadius > abs(cp.x-x2)) lightsMatrix[j*gLightsCol+k].push_back(i);
+						if (pRadius >= abs(cp.x-x2)) lightsMatrix[j*gLightsCol+k].push_back(i);
 					}
 				}
 				else if (cp.x < x1 && cp.y < y1) { // upper-left
-					if (pRadius > sqrt((cp.x-x1)*(cp.x-x1)+(cp.y-y1)*(cp.y-y1))) lightsMatrix[j*gLightsCol+k].push_back(i);
+					if (pRadius >= sqrt((cp.x-x1)*(cp.x-x1)+(cp.y-y1)*(cp.y-y1))) lightsMatrix[j*gLightsCol+k].push_back(i);
 				} 
 				else if (cp.x > x2 && cp.y < y1) { // upper-right
-					if (pRadius > sqrt((cp.x-x2)*(cp.x-x2)+(cp.y-y1)*(cp.y-y1))) lightsMatrix[j*gLightsCol+k].push_back(i);
+					if (pRadius >= sqrt((cp.x-x2)*(cp.x-x2)+(cp.y-y1)*(cp.y-y1))) lightsMatrix[j*gLightsCol+k].push_back(i);
 				}
 				else if (cp.x < x1 && cp.y > y2) { // down-left
-					if (pRadius > sqrt((cp.x-x1)*(cp.x-x1)+(cp.y-y2)*(cp.y-y2))) lightsMatrix[j*gLightsCol+k].push_back(i);
+					if (pRadius >= sqrt((cp.x-x1)*(cp.x-x1)+(cp.y-y2)*(cp.y-y2))) lightsMatrix[j*gLightsCol+k].push_back(i);
 				}
 				else if (cp.x > x2 && cp.y > y2) { // down-right
-					if (pRadius >sqrt((cp.x-x2)*(cp.x-x2)+(cp.y-y2)*(cp.y-y2))) lightsMatrix[j*gLightsCol+k].push_back(i);
+					if (pRadius >= sqrt((cp.x-x2)*(cp.x-x2)+(cp.y-y2)*(cp.y-y2))) lightsMatrix[j*gLightsCol+k].push_back(i);
 				}
 			}
 		}

@@ -1,6 +1,6 @@
 #version 330 compatibility
 
-const int TILE_SIZE = 32;
+const int TILE_SIZE = 16;
 
 varying vec2 texCoord0;
 varying vec3 norm0;
@@ -28,7 +28,6 @@ uniform isamplerBuffer scanSum;
 void main() 
 {
     float nCol = ceil(screenSize.x/TILE_SIZE);
-    float nRow = ceil(screenSize.y/TILE_SIZE);
     float xTile = floor(gl_FragCoord.x/TILE_SIZE);
     float yTile = floor(gl_FragCoord.y/TILE_SIZE);
     int tile = int(xTile+nCol*yTile);
