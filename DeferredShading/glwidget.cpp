@@ -723,6 +723,12 @@ void GLWidget::paintGL()
 
 		setForwardPlusUniforms();
 		mainMesh->Render(positionForwardPlusLocation, texCoordForwardPlusLocation, normForwardPlusLocation, samplerForwardPlusLocation);
+
+		//Draw ligh billboards
+		if (lBillboards) {
+			glUseProgram(0);
+			for (unsigned int i = 0; i < nLights; i++) drawLightBillboard(pointLightsArr[i], 0.15f);
+		}		
 	}
 	else if (renderMode == RENDER_DEPTH) {
 		DrawDepthPrepass();
@@ -824,16 +830,7 @@ void GLWidget::drawLightBillboard(pointLight l, float w)
 	glDisable(GL_TEXTURE_2D);
 	glDisable(GL_BLEND);	
 }
-/*
-uniform samplerBuffer scanSum;
-uniform int maxTileLights;
-uniform vec2 screenSize;
 
-	GLuint scanSumForwardDebugLocation;
-	GLuint maxLightsForwardDebugLocation;
-	GLuint screenSizeForwardDebugLocation;
-	std::vector<int> lightsScanSum;
-*/
 void GLWidget::DrawLightsGrid()
 {
 	// Populate texture buffer

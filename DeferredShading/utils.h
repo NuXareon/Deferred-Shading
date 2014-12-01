@@ -29,7 +29,7 @@
 #define ATTENUATION_LINEAR		60.0
 #define ATTENUATION_EXP			0.0
 #define FORWARD_LIGHTS_INTERVAL	100
-#define GRID_RES				16.0
+#define GRID_RES				128.0
 #define LIGHT_PROX_RATIO		4.0
 #define LIGHT_PATH				"lights.csv"
 
