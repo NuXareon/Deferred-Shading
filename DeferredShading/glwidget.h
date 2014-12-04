@@ -187,6 +187,12 @@ private:
 	unsigned int gLightsCol, gLightsRow;
 	std::vector<std::vector<int> > lightsMatrix;
 	std::vector<int> lightsScanSum;
+
+	static const int lightsMatrixLength = (MAX_WIN_WIDTH/GRID_RES)*(MAX_WIN_HEIGHT/GRID_RES)*LIGHTS_PER_TILE;
+	static const int lightsScanSumLength = (MAX_WIN_WIDTH/GRID_RES)*(MAX_WIN_HEIGHT/GRID_RES);
+	int _lightsMatrix[lightsMatrixLength];
+	int _lightsScanSum[lightsScanSumLength];
+
 	unsigned int maxTileLights;
 	// Buffers
 	gbuffer *gBufferDS;									// G-buffer: framebuffer with the textures we will use for deferred shading
@@ -195,6 +201,7 @@ private:
 	GLuint LTB,LGTB,SSTB;								// Texture buffer containing the lighting information for forward rendering
 	// Functions
 	void initializeLighting();							// Initializes nLights point lights with pseudo-random attributes.
+	void updateLightingBuffer();
 	void importLighting(std::ifstream& ifs);
 	void initializeShaders();							// Reads and compiles the vertex and fragment shader.
 	void initializeShadersDeferred();					// same as initilizeShaders() but for deferred shading shaders.
@@ -211,6 +218,7 @@ private:
 	void DrawLightsGrid();
 	void directionalLightPass();
 	void updateLightsMatrix();
+	void _updateLightsMatrix();
 	void clearLigthsMatrix();
 
 	int arr[1800000];

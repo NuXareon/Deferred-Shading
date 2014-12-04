@@ -350,15 +350,7 @@ void GLWidget::initializeLighting()
 	}
 
 	// Populate texture buffer
-	GLuint TB;
-	glGenBuffers(1,&TB);
-	glBindBuffer(GL_TEXTURE_BUFFER,TB);
-	glBufferData(GL_TEXTURE_BUFFER,nLights*sizeof(pointLight),&pointLightsArr[0],GL_STATIC_COPY);
-
-	glBindTexture(GL_TEXTURE_BUFFER,LTB);
-	glTexBuffer(GL_TEXTURE_BUFFER,GL_RGB32F,TB);
-
-	glDeleteBuffers(1,&TB);
+	updateLightingBuffer();
 
 	utils::saveLightingToFile(pointLightsArr, nLights, modelPath);
 }
@@ -398,6 +390,19 @@ void GLWidget::importLighting(std::ifstream& ifs)
 	glGenBuffers(1,&TB);
 	glBindBuffer(GL_TEXTURE_BUFFER,TB);
 	glBufferData(GL_TEXTURE_BUFFER,nLights*sizeof(pointLight),&pointLightsArr[0],GL_STATIC_COPY);
+
+	glBindTexture(GL_TEXTURE_BUFFER,LTB);
+	glTexBuffer(GL_TEXTURE_BUFFER,GL_RGB32F,TB);
+
+	glDeleteBuffers(1,&TB);
+}
+
+void GLWidget::updateLightingBuffer()
+{
+	GLuint TB;
+	glGenBuffers(1,&TB);
+	glBindBuffer(GL_TEXTURE_BUFFER,TB);
+	glBufferData(GL_TEXTURE_BUFFER,nLights*sizeof(pointLight),&pointLightsArr[0],GL_DYNAMIC_COPY);
 
 	glBindTexture(GL_TEXTURE_BUFFER,LTB);
 	glTexBuffer(GL_TEXTURE_BUFFER,GL_RGB32F,TB);
@@ -447,7 +452,7 @@ void GLWidget::initializeGL()
 	float dDirection[] = {-0.577f,-0.577f,-0.577f};
 	
 	aLight = ambientLight(wColor, 0.02f);
-	dLight = directionalLight(wColor, 0.035f, dDirection);
+	dLight = directionalLight(wColor, 0.045f, dDirection);
 }
 
 void GLWidget::resizeGL(int width, int height)
@@ -579,6 +584,8 @@ void GLWidget::paintGL()
 
 		glUseProgram(shaderProgram);
 
+		//updateLightingBuffer();
+
 		// set lighting texture buffer
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_BUFFER, LTB);
@@ -601,6 +608,7 @@ void GLWidget::paintGL()
  		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
  
  		glUseProgram(shaderProgramBlend);
+		//updateLightingBuffer();
 		if (nLights < 100) {
 			setLightUniformsBlend(0, nLights, 0.0f);
 			mainMesh->Render(positionBlendLocation, texCoordBlendLocation, normBlendLocation, samplerBlendLocation);
@@ -719,7 +727,8 @@ void GLWidget::paintGL()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glUseProgram(shaderProgramForwardPlus);
 
-		updateLightsMatrix();
+		//updateLightsMatrix();
+		_updateLightsMatrix();
 
 		setForwardPlusUniforms();
 		mainMesh->Render(positionForwardPlusLocation, texCoordForwardPlusLocation, normForwardPlusLocation, samplerForwardPlusLocation);
@@ -1030,6 +1039,148 @@ void GLWidget::updateLightsMatrix()
 	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,TB[1]);
 
 	glDeleteBuffers(2,TB);
+}
+
+void GLWidget::_updateLightsMatrix()
+{
+	/*
+		gluLookAt(	xPos, yPos, zPos,
+				xPos+cos(betaRad)*cos(alphaRad), yPos+sin(betaRad), zPos-cos(betaRad)*sin(alphaRad),
+				0.0f, 1.0f, 0.0f);
+				*/
+	const float PI = 3.1415927f;
+	float alphaRad = PI*alpha/180;
+	float betaRad = PI*beta/180;
+	glm::vec3 right = glm::vec3(cos(betaRad)*cos(alphaRad), sin(betaRad), -cos(betaRad)*sin(alphaRad));
+	right = glm::normalize(right);
+	right = glm::cross(right,glm::vec3(0.0,1.0,0.0));
+	right = glm::normalize(right);
+
+	float gl_ModelViewMatrix[16];
+	glGetFloatv(GL_MODELVIEW_MATRIX, gl_ModelViewMatrix);
+	glm::mat4 m = glm::mat4(gl_ModelViewMatrix[0],gl_ModelViewMatrix[1],gl_ModelViewMatrix[2],gl_ModelViewMatrix[3],gl_ModelViewMatrix[4],gl_ModelViewMatrix[5],gl_ModelViewMatrix[6],gl_ModelViewMatrix[7],gl_ModelViewMatrix[8],gl_ModelViewMatrix[9],gl_ModelViewMatrix[10],gl_ModelViewMatrix[11],gl_ModelViewMatrix[12],gl_ModelViewMatrix[13],gl_ModelViewMatrix[14],gl_ModelViewMatrix[15]);
+
+	float gl_ProjectionMatrix[16];
+	glGetFloatv(GL_PROJECTION_MATRIX, gl_ProjectionMatrix);
+	glm::mat4 proj = glm::mat4(gl_ProjectionMatrix[0],gl_ProjectionMatrix[1],gl_ProjectionMatrix[2],gl_ProjectionMatrix[3],gl_ProjectionMatrix[4],gl_ProjectionMatrix[5],gl_ProjectionMatrix[6],gl_ProjectionMatrix[7],gl_ProjectionMatrix[8],gl_ProjectionMatrix[9],gl_ProjectionMatrix[10],gl_ProjectionMatrix[11],gl_ProjectionMatrix[12],gl_ProjectionMatrix[13],gl_ProjectionMatrix[14],gl_ProjectionMatrix[15]);
+
+	for (int i = 0; i < lightsScanSumLength; ++i) _lightsScanSum[i] = 0;
+	for (unsigned int i = 0; i < nLights; i++) {
+		glm::vec4 c = glm::vec4(pointLightsArr[i].position.x, pointLightsArr[i].position.y, pointLightsArr[i].position.z,1.0);
+		float r = utils::calcLightRadius(pointLightsArr[i], threshold);
+		glm::vec4 p = c+r*glm::vec4(right,0.0);
+		p.w=1.0f;
+
+		glm::vec4 cp = proj*m*c;
+		cp = cp/cp.w;
+		cp.x = width()*(cp.x+1)/2;
+		cp.y = height()*(cp.y+1)/2;
+		glm::vec4 pp = proj*m*p;
+		pp = pp/pp.w;
+		pp.x = width()*(pp.x+1)/2;
+		pp.y = height()*(pp.y+1)/2;
+		float pRadius = glm::length(cp.xy-pp.xy);
+	
+		float x1,x2,y1,y2;
+		for (unsigned int j = 0; j < gLightsRow; j++) {
+			for (unsigned int k = 0; k < gLightsCol; k++) {
+				x1 = k*GRID_RES; x2 = (k+1)*GRID_RES;
+				y1 = j*GRID_RES; y2 = (j+1)*GRID_RES;
+				int off;
+				if (cp.x >= x1 && cp.x < x2) {
+					if (cp.y >= y1 && cp.y < y2) { //center inside tile
+						off = _lightsScanSum[j*gLightsCol+k]++; // comprovacio que no ens pasem de max num ligths per tile
+						_lightsMatrix[(j*gLightsCol+k)*LIGHTS_PER_TILE+off] = i;
+					} 
+					else if (cp.y > y2) { // down (r> y-y2)
+						if (pRadius >= abs(cp.y-y2)) {
+							off = _lightsScanSum[j*gLightsCol+k]++;
+							_lightsMatrix[(j*gLightsCol+k)*LIGHTS_PER_TILE+off] = i;
+						}
+					} 
+					else if (cp.y < y1) { // up (r> y-y1)
+						if (pRadius >= abs(cp.y-y1)) {
+							off = _lightsScanSum[j*gLightsCol+k]++;
+							_lightsMatrix[(j*gLightsCol+k)*LIGHTS_PER_TILE+off] = i;
+						}
+					} 
+				} 
+				else if (cp.y >= y1 && cp.y < y2) { 
+					if (cp.x < x1) { // left
+						if (pRadius >= abs(cp.x-x1)) {
+							off = _lightsScanSum[j*gLightsCol+k]++;
+							_lightsMatrix[(j*gLightsCol+k)*LIGHTS_PER_TILE+off] = i;
+						}
+					}
+					else if (cp.x > x2) { // right
+						if (pRadius >= abs(cp.x-x2)) {
+							off = _lightsScanSum[j*gLightsCol+k]++;
+							_lightsMatrix[(j*gLightsCol+k)*LIGHTS_PER_TILE+off] = i;
+						}
+					}
+				}
+				else if (cp.x < x1 && cp.y < y1) { // upper-left
+					if (pRadius >= sqrt((cp.x-x1)*(cp.x-x1)+(cp.y-y1)*(cp.y-y1))) {
+						off = _lightsScanSum[j*gLightsCol+k]++;
+						_lightsMatrix[(j*gLightsCol+k)*LIGHTS_PER_TILE+off] = i;
+					}
+				} 
+				else if (cp.x > x2 && cp.y < y1) { // upper-right
+					if (pRadius >= sqrt((cp.x-x2)*(cp.x-x2)+(cp.y-y1)*(cp.y-y1))) {
+						off = _lightsScanSum[j*gLightsCol+k]++;
+						_lightsMatrix[(j*gLightsCol+k)*LIGHTS_PER_TILE+off] = i;
+					}
+				}
+				else if (cp.x < x1 && cp.y > y2) { // down-left
+					if (pRadius >= sqrt((cp.x-x1)*(cp.x-x1)+(cp.y-y2)*(cp.y-y2))) {
+						off = _lightsScanSum[j*gLightsCol+k]++;
+						_lightsMatrix[(j*gLightsCol+k)*LIGHTS_PER_TILE+off] = i;
+					}
+				}
+				else if (cp.x > x2 && cp.y > y2) { // down-right
+					if (pRadius >= sqrt((cp.x-x2)*(cp.x-x2)+(cp.y-y2)*(cp.y-y2))) {
+						off = _lightsScanSum[j*gLightsCol+k]++;
+						_lightsMatrix[(j*gLightsCol+k)*LIGHTS_PER_TILE+off] = i;
+					}
+				}
+			}
+		}
+	}
+
+	//lights grid compresion
+	int p = 0;
+	for (int i = 0; i < lightsScanSumLength; ++i) {
+		int nLightsTile = _lightsScanSum[i];
+		for (int j = 0; j < nLightsTile; ++j) {
+			_lightsMatrix[p++] = _lightsMatrix[i*LIGHTS_PER_TILE+j];
+		}
+	}
+
+	// scan sum
+	maxTileLights = _lightsScanSum[0];
+	for (int i = 1; i < lightsScanSumLength; ++i) {
+		if (maxTileLights < _lightsScanSum[i]) maxTileLights = _lightsScanSum[i];
+		_lightsScanSum[i] += _lightsScanSum[i-1];
+	}
+	
+	// Populate texture buffer
+	GLuint TB[2];
+	glGenBuffers(2,TB);
+
+	glBindBuffer(GL_TEXTURE_BUFFER,TB[0]);
+	glBufferData(GL_TEXTURE_BUFFER,sizeof(_lightsMatrix),&_lightsMatrix[0],GL_DYNAMIC_COPY);
+
+	glBindTexture(GL_TEXTURE_BUFFER,LGTB);
+	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,TB[0]);
+	
+	glBindBuffer(GL_TEXTURE_BUFFER,TB[1]);
+	glBufferData(GL_TEXTURE_BUFFER,sizeof(_lightsScanSum),&_lightsScanSum[0],GL_DYNAMIC_COPY);
+
+	glBindTexture(GL_TEXTURE_BUFFER,SSTB);
+	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,TB[1]);
+
+	glDeleteBuffers(2,TB);
+	
 }
 
 void GLWidget::clearLigthsMatrix(){

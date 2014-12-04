@@ -17,7 +17,12 @@
 #include "glxext.h"
 #endif
 
-#define INVALID_BUFFER -		1
+#define MAX_WIN_WIDTH			1920
+#define MAX_WIN_HEIGHT			1080
+#define GRID_RES				128.0
+#define LIGHTS_PER_TILE			1024
+#define CUDA_BLOCK_WIDTH		256
+#define INVALID_BUFFER			-1
 #define N_MAX_LIGHTS			10000
 #define	INITIAL_LIGHTS			20
 #define	GBUFFER_DEFAULT			0
@@ -29,7 +34,6 @@
 #define ATTENUATION_LINEAR		60.0
 #define ATTENUATION_EXP			0.0
 #define FORWARD_LIGHTS_INTERVAL	100
-#define GRID_RES				128.0
 #define LIGHT_PROX_RATIO		4.0
 #define LIGHT_PATH				"lights.csv"
 
