@@ -3,6 +3,24 @@
 #include "depthBuffer.h"
 #include "utils.h"
 
+extern "C" void launch_kernel(void* pointLightsArr, int nLights, float threshold, glm::vec3* right, float* gl_ModelViewMatrix, float* gl_ProjectionMatrix, int w, int h,
+	int gLightsRow, int gLightsCol, int* lightsScanSum, int lightsScanSumLength, int* lightsMatrix, int lightsMatrixLength, int gridRes, int lightsTile,
+	int *d_res, int *d_nLights, int *d_lightsScanSum, int *d_lightsMatrix, int *d_gridRes, int *d_lightsTile, int *d_gLightsCol, int *d_lightsMatrixCompact, int *d_lightsScanSumLength,
+	float *d_pla, float *d_threshold,
+	glm::mat4 *d_m, glm::mat4 *d_proj,
+	glm::vec3 *d_lightsProj, glm::vec3 *d_r);
+
+extern "C" void initMemCUDA(int **d_res, int **d_nLights, int **d_lightsScanSum, int **d_lightsMatrix, int **d_gridRes, int **d_lightsTile, int **d_gLightsCol, int **d_lightsMatrixCompact, int **d_lightsScanSumLength,
+	float **d_pla, float **d_threshold,
+	glm::mat4 **d_m, glm::mat4 **d_proj,
+	glm::vec3 **d_lightsProj, glm::vec3 **d_r,
+	int nLights, int lightsScanSumLength, int lightsMatrixLength);
+
+extern "C" void freeMemCUDA(int *d_res, int *d_nLights, int *d_lightsScanSum, int *d_lightsMatrix, int *d_gridRes, int *d_lightsTile, int *d_gLightsCol, int *d_lightsMatrixCompact, int *d_lightsScanSumLength,
+	float *d_pla, float *d_threshold,
+	glm::mat4 *d_m, glm::mat4 *d_proj,
+	glm::vec3 *d_lightsProj, glm::vec3 *d_r);
+
 class GLWidget : public QGLWidget
 {
     Q_OBJECT
@@ -37,6 +55,7 @@ public slots:
 	void setDeferredRenderMode();
 	void setForwardDebugRenderMode();
 	void setForwardPlusRenderMode();
+	void setForwardPlusCudaRenderMode();
 	// Misc.
 	void loadModel(std::string path);					// Loads a model located on path.
 	void genLightning(int n);							// Modifies nLights and regenerates lightning, see initializeLightning().
@@ -199,6 +218,11 @@ private:
 	depthBuffer *dBufferFR;								// Depth Buffer: framebuffer used for the depth prepass in the forward reder
 	depthBuffer *dBufferDS;
 	GLuint LTB,LGTB,SSTB;								// Texture buffer containing the lighting information for forward rendering
+	// CUDA
+	int *d_res, *d_nLights, *d_lightsScanSum, *d_lightsMatrix, *d_gridRes, *d_lightsTile, *d_gLightsCol, *d_lightsMatrixCompact, *d_lightsScanSumLength;
+	float *d_pla,*d_threshold;
+	glm::mat4 *d_m,*d_proj;
+	glm::vec3 *d_lightsProj,*d_r;
 	// Functions
 	void initializeLighting();							// Initializes nLights point lights with pseudo-random attributes.
 	void updateLightingBuffer();
@@ -219,6 +243,7 @@ private:
 	void directionalLightPass();
 	void updateLightsMatrix();
 	void _updateLightsMatrix();
+	void updateLightsMatrixCUDA();
 	void clearLigthsMatrix();
 
 	int arr[1800000];

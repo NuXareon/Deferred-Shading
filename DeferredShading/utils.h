@@ -21,7 +21,6 @@
 #define MAX_WIN_HEIGHT			1080
 #define GRID_RES				128.0
 #define LIGHTS_PER_TILE			1024
-#define CUDA_BLOCK_WIDTH		256
 #define INVALID_BUFFER			-1
 #define N_MAX_LIGHTS			10000
 #define	INITIAL_LIGHTS			20
@@ -36,8 +35,11 @@
 #define FORWARD_LIGHTS_INTERVAL	100
 #define LIGHT_PROX_RATIO		4.0
 #define LIGHT_PATH				"lights.csv"
+#define LIGHT_PROJ_PATH			"lights_proj.csv"
+#define LIGHT_SS_PATH			"lights_ss.csv"
+#define LIGHT_MAT_PATH			"lights_matrix.csv"
 
-enum renderModeType {RENDER_POSITION, RENDER_NORMAL, RENDER_DIFFUSE, RENDER_ALL, RENDER_FORWARD, RENDER_FORWARD_BLEND, RENDER_DEPTH, RENDER_DEFERRED, RENDER_GRID, RENDER_FORWARD_PLUS};
+enum renderModeType {RENDER_POSITION, RENDER_NORMAL, RENDER_DIFFUSE, RENDER_ALL, RENDER_FORWARD, RENDER_FORWARD_BLEND, RENDER_DEPTH, RENDER_DEFERRED, RENDER_GRID, RENDER_FORWARD_PLUS, RENDER_FORWARD_PLUS_CUDA};
 
 // Vector structs
 struct Vector3f
@@ -165,4 +167,6 @@ public:
 	static float calcLightRadius(pointLight l, float threshold);
 	static bool isLightNearGeo(pointLight l, const std::vector<Vector3f>* m);
 	static void saveLightingToFile(pointLight p[], int n, std::string mPath);
+	static void saveLightProjToFile(glm::vec3* lp, int n);
+	static void saveToFile(int* a, int n, std::string path);
 };

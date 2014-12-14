@@ -36,6 +36,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{50887bbe-e81e-46a4-8874-8ef673898856}</UniqueIdentifier>
     </Filter>
+    <Filter Include="CUDA">
+      <UniqueIdentifier>{419dc7ab-638f-4c96-b50d-244be33b96c1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -153,5 +156,10 @@
     <None Include="forward_plus_shader.fs">
       <Filter>Shaders</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="updateLightsMatrix.cu">
+      <Filter>CUDA</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

@@ -126,3 +126,21 @@ void utils::saveLightingToFile(pointLight p[], int n, std::string mPath)
 	}
 	ofs.close();
 }
+
+void utils::saveLightProjToFile(glm::vec3* lp, int n)
+{
+	std::ofstream ofs(LIGHT_PROJ_PATH);
+	for (int i = 0; i < n; i++) {
+		ofs << i << "," << lp[i].x << "," << lp[i].y << "," << lp[i].z << std::endl;
+	}
+	ofs.close();
+}
+
+void utils::saveToFile(int* a, int n, std::string path)
+{
+	std::ofstream ofs(path);
+	for (int i = 0; i < n; i++) {
+		ofs << a[i] << ",";
+	}
+	ofs.close();
+}

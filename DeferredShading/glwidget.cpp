@@ -53,10 +53,20 @@ GLWidget::GLWidget(QWidget *parent) :
 	gBufferDS = new gbuffer;
 	dBufferFR = new depthBuffer;
 	dBufferDS = new depthBuffer;
+	// CUDA
+	initMemCUDA(&d_res, &d_nLights, &d_lightsScanSum, &d_lightsMatrix, &d_gridRes, &d_lightsTile, &d_gLightsCol, &d_lightsMatrixCompact, &d_lightsScanSumLength,
+	&d_pla, &d_threshold,
+	&d_m, &d_proj,
+	&d_lightsProj, &d_r,
+	nLights, lightsScanSumLength, lightsMatrixLength);
 }
 
 GLWidget::~GLWidget()
 {
+	freeMemCUDA(d_res, d_nLights, d_lightsScanSum, d_lightsMatrix, d_gridRes, d_lightsTile, d_gLightsCol, d_lightsMatrixCompact, d_lightsScanSumLength,
+	d_pla, d_threshold,
+	d_m, d_proj,
+	d_lightsProj, d_r);
 }
 
 void GLWidget::loadModel(std::string path)
@@ -141,6 +151,12 @@ void GLWidget::setForwardPlusRenderMode()
 {
 	renderMode = RENDER_FORWARD_PLUS;
 	emit updateRenderMode("Forward+");
+}
+
+void GLWidget::setForwardPlusCudaRenderMode()
+{
+	renderMode = RENDER_FORWARD_PLUS_CUDA;
+	emit updateRenderMode("Forward+(CUDA)");
 }
 
 void GLWidget::initializeShaderProgram(const char *vsP, const char *fsP, GLuint *sp)
@@ -720,7 +736,7 @@ void GLWidget::paintGL()
 			glDepthMask(GL_TRUE);
 		}
 	}
-	else if (renderMode == RENDER_FORWARD_PLUS) {
+	else if (renderMode == RENDER_FORWARD_PLUS || renderMode == RENDER_FORWARD_PLUS_CUDA) {
 		gBufferDS->bind(GBUFFER_DEFAULT);
 		glDepthMask(GL_TRUE);
 		glEnable(GL_DEPTH_TEST);
@@ -728,7 +744,8 @@ void GLWidget::paintGL()
 		glUseProgram(shaderProgramForwardPlus);
 
 		//updateLightsMatrix();
-		_updateLightsMatrix();
+		if (renderMode == RENDER_FORWARD_PLUS) _updateLightsMatrix();
+		else if (renderMode == RENDER_FORWARD_PLUS_CUDA) updateLightsMatrixCUDA();
 
 		setForwardPlusUniforms();
 		mainMesh->Render(positionForwardPlusLocation, texCoordForwardPlusLocation, normForwardPlusLocation, samplerForwardPlusLocation);
@@ -1064,6 +1081,8 @@ void GLWidget::_updateLightsMatrix()
 	glGetFloatv(GL_PROJECTION_MATRIX, gl_ProjectionMatrix);
 	glm::mat4 proj = glm::mat4(gl_ProjectionMatrix[0],gl_ProjectionMatrix[1],gl_ProjectionMatrix[2],gl_ProjectionMatrix[3],gl_ProjectionMatrix[4],gl_ProjectionMatrix[5],gl_ProjectionMatrix[6],gl_ProjectionMatrix[7],gl_ProjectionMatrix[8],gl_ProjectionMatrix[9],gl_ProjectionMatrix[10],gl_ProjectionMatrix[11],gl_ProjectionMatrix[12],gl_ProjectionMatrix[13],gl_ProjectionMatrix[14],gl_ProjectionMatrix[15]);
 
+	glm::vec3* lp = new glm::vec3[nLights];
+
 	for (int i = 0; i < lightsScanSumLength; ++i) _lightsScanSum[i] = 0;
 	for (unsigned int i = 0; i < nLights; i++) {
 		glm::vec4 c = glm::vec4(pointLightsArr[i].position.x, pointLightsArr[i].position.y, pointLightsArr[i].position.z,1.0);
@@ -1080,7 +1099,9 @@ void GLWidget::_updateLightsMatrix()
 		pp.x = width()*(pp.x+1)/2;
 		pp.y = height()*(pp.y+1)/2;
 		float pRadius = glm::length(cp.xy-pp.xy);
-	
+
+		lp[i] = glm::vec3(cp.x,cp.y,pRadius);
+
 		float x1,x2,y1,y2;
 		for (unsigned int j = 0; j < gLightsRow; j++) {
 			for (unsigned int k = 0; k < gLightsCol; k++) {
@@ -1163,6 +1184,58 @@ void GLWidget::_updateLightsMatrix()
 		_lightsScanSum[i] += _lightsScanSum[i-1];
 	}
 	
+	// Populate texture buffer
+	GLuint TB[2];
+	glGenBuffers(2,TB);
+
+	glBindBuffer(GL_TEXTURE_BUFFER,TB[0]);
+	glBufferData(GL_TEXTURE_BUFFER,sizeof(_lightsMatrix),&_lightsMatrix[0],GL_DYNAMIC_COPY);
+
+	glBindTexture(GL_TEXTURE_BUFFER,LGTB);
+	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,TB[0]);
+	
+	glBindBuffer(GL_TEXTURE_BUFFER,TB[1]);
+	glBufferData(GL_TEXTURE_BUFFER,sizeof(_lightsScanSum),&_lightsScanSum[0],GL_DYNAMIC_COPY);
+
+	glBindTexture(GL_TEXTURE_BUFFER,SSTB);
+	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,TB[1]);
+
+	glDeleteBuffers(2,TB);
+	
+}
+
+void GLWidget::updateLightsMatrixCUDA() 
+{
+	const float PI = 3.1415927f;
+	float alphaRad = PI*alpha/180;
+	float betaRad = PI*beta/180;
+	glm::vec3 right = glm::vec3(cos(betaRad)*cos(alphaRad), sin(betaRad), -cos(betaRad)*sin(alphaRad));
+	right = glm::normalize(right);
+	right = glm::cross(right,glm::vec3(0.0,1.0,0.0));
+	right = glm::normalize(right);
+
+	float gl_ModelViewMatrix[16];
+	glGetFloatv(GL_MODELVIEW_MATRIX, gl_ModelViewMatrix);
+
+	float gl_ProjectionMatrix[16];
+	glGetFloatv(GL_PROJECTION_MATRIX, gl_ProjectionMatrix);
+	
+	for (int i = 0; i < lightsScanSumLength; ++i) _lightsScanSum[i] = 0;
+	/*
+	int * ssTest;
+	ssTest = new int[lightsScanSumLength];
+	for (int i = 0; i < lightsScanSumLength; ++i) ssTest[i] = 0;
+	*/
+	launch_kernel(pointLightsArr, nLights, threshold, &right, gl_ModelViewMatrix, gl_ProjectionMatrix, width(), height(), 
+		gLightsRow, gLightsCol, _lightsScanSum, lightsScanSumLength, _lightsMatrix, lightsMatrixLength, GRID_RES, LIGHTS_PER_TILE,
+		d_res, d_nLights, d_lightsScanSum, d_lightsMatrix, d_gridRes, d_lightsTile, d_gLightsCol, d_lightsMatrixCompact, d_lightsScanSumLength,
+		d_pla, d_threshold,
+		d_m, d_proj,
+		d_lightsProj, d_r);
+	
+	//utils::saveToFile(_lightsScanSum, lightsScanSumLength,LIGHT_SS_PATH);
+	//utils::saveToFile(_lightsMatrix, lightsMatrixLength,LIGHT_MAT_PATH);
+
 	// Populate texture buffer
 	GLuint TB[2];
 	glGenBuffers(2,TB);

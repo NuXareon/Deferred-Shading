@@ -41,6 +41,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	QAction *forwardBlendRenderAct = new QAction(tr("&Forward(Blend)"), this);
 	QAction *deferredRenderAct = new QAction(tr("&Deferred"), this);
 	QAction *forwardPlusRenderAct = new QAction(tr("&Forward+"), this);
+	QAction *forwardPlusCudaRenderAct = new QAction(tr("&Forward+(CUDA)"), this);
 	QAction *positionRenderAct = new QAction(tr("&Position"), this);
 	QAction *diffuseRenderAct = new QAction(tr("&Diffuse"), this);
 	QAction *normalRenderAct = new QAction(tr("&Normal"), this);
@@ -51,6 +52,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	renderMenu->addAction(forwardBlendRenderAct);
 	renderMenu->addAction(deferredRenderAct);
 	renderMenu->addAction(forwardPlusRenderAct);
+	renderMenu->addAction(forwardPlusCudaRenderAct);
 	renderMenu->addSeparator();
 	renderMenu->addAction(positionRenderAct);
 	renderMenu->addAction(diffuseRenderAct);
@@ -186,6 +188,7 @@ DeferredShading::DeferredShading(QWidget *parent, Qt::WFlags flags)
 	connect(forwardRenderAct,SIGNAL(triggered()), glWidget, SLOT(setForwardRenderMode()));
 	connect(forwardBlendRenderAct,SIGNAL(triggered()), glWidget, SLOT(setForwardBlendRenderMode()));
 	connect(forwardPlusRenderAct,SIGNAL(triggered()), glWidget, SLOT(setForwardPlusRenderMode()));
+	connect(forwardPlusCudaRenderAct,SIGNAL(triggered()), glWidget, SLOT(setForwardPlusCudaRenderMode()));
 	connect(deferredRenderAct,SIGNAL(triggered()), glWidget, SLOT(setDeferredRenderMode()));
 	connect(positionRenderAct,SIGNAL(triggered()), glWidget, SLOT(setPositionRenderMode()));
 	connect(diffuseRenderAct,SIGNAL(triggered()), glWidget, SLOT(setDiffuseRenderMode())); 

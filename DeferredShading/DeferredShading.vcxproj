@@ -23,6 +23,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 6.5.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -57,7 +58,7 @@
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>$(SolutionDir)$(SolutionName)\glew-1.11.0\lib\Release\Win32;$(SolutionDir)$(SolutionName)\Assimp\lib\x86;$(SolutionDir)$(SolutionName)\ImageMagick\debug\lib;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glew32.lib;assimp.lib;qtmaind.lib;QtCored4.lib;QtGuid4.lib;QtOpenGLd4.lib;opengl32.lib;glu32.lib;CORE_DB_magick_.lib;CORE_DB_Magick++_.lib;CORE_DB_wand_.lib;X11.lib</AdditionalDependencies>
+      <AdditionalDependencies>cudart.lib;glew32.lib;assimp.lib;qtmaind.lib;QtCored4.lib;QtGuid4.lib;QtOpenGLd4.lib;opengl32.lib;glu32.lib;CORE_DB_magick_.lib;CORE_DB_Magick++_.lib;CORE_DB_wand_.lib;X11.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(SolutionDir)DeferredShading\Assimp\bin\x86\*.dll" "$(OutDir)"
@@ -189,8 +190,12 @@ copy /Y "$(SolutionDir)DeferredShading\glew-1.11.0\bin\Release\Win32\*.dll" "$(O
     <None Include="forward_shader_depth_debug.vs" />
     <None Include="lights.csv" />
   </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="updateLightsMatrix.cu" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 6.5.targets" />
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
