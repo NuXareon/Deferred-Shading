@@ -53,20 +53,11 @@ GLWidget::GLWidget(QWidget *parent) :
 	gBufferDS = new gbuffer;
 	dBufferFR = new depthBuffer;
 	dBufferDS = new depthBuffer;
-	// CUDA
-	initMemCUDA(&d_res, &d_nLights, &d_lightsScanSum, &d_lightsMatrix, &d_gridRes, &d_lightsTile, &d_gLightsCol, &d_lightsMatrixCompact, &d_lightsScanSumLength,
-	&d_pla, &d_threshold,
-	&d_m, &d_proj,
-	&d_lightsProj, &d_r,
-	nLights, lightsScanSumLength, lightsMatrixLength);
 }
 
 GLWidget::~GLWidget()
 {
-	freeMemCUDA(d_res, d_nLights, d_lightsScanSum, d_lightsMatrix, d_gridRes, d_lightsTile, d_gLightsCol, d_lightsMatrixCompact, d_lightsScanSumLength,
-	d_pla, d_threshold,
-	d_m, d_proj,
-	d_lightsProj, d_r);
+	freeMemCUDA();
 }
 
 void GLWidget::loadModel(std::string path)
@@ -91,6 +82,8 @@ void GLWidget::genLightning(int n)
 {
 	nLights = n;
 	initializeLighting();
+	freeMemCUDA();
+	initMemCUDA(nLights, lightsScanSumLength, lightsMatrixLength);
 }
 
 void GLWidget::setForwardRenderMode()	
@@ -469,6 +462,9 @@ void GLWidget::initializeGL()
 	
 	aLight = ambientLight(wColor, 0.02f);
 	dLight = directionalLight(wColor, 0.045f, dDirection);
+
+	// CUDA
+	initMemCUDA(nLights, lightsScanSumLength, lightsMatrixLength);
 }
 
 void GLWidget::resizeGL(int width, int height)
@@ -600,7 +596,7 @@ void GLWidget::paintGL()
 
 		glUseProgram(shaderProgram);
 
-		//updateLightingBuffer();
+		updateLightingBuffer();
 
 		// set lighting texture buffer
 		glActiveTexture(GL_TEXTURE1);
@@ -624,7 +620,7 @@ void GLWidget::paintGL()
  		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
  
  		glUseProgram(shaderProgramBlend);
-		//updateLightingBuffer();
+		updateLightingBuffer();
 		if (nLights < 100) {
 			setLightUniformsBlend(0, nLights, 0.0f);
 			mainMesh->Render(positionBlendLocation, texCoordBlendLocation, normBlendLocation, samplerBlendLocation);
@@ -1222,12 +1218,8 @@ void GLWidget::updateLightsMatrixCUDA()
 	
 	for (int i = 0; i < lightsScanSumLength; ++i) _lightsScanSum[i] = 0;
 
-	launch_kernel(pointLightsArr, nLights, threshold, &right, gl_ModelViewMatrix, gl_ProjectionMatrix, width(), height(), 
-		gLightsRow, gLightsCol, _lightsScanSum, lightsScanSumLength, _lightsMatrix, lightsMatrixLength, GRID_RES, LIGHTS_PER_TILE,
-		d_res, d_nLights, d_lightsScanSum, d_lightsMatrix, d_gridRes, d_lightsTile, d_gLightsCol, d_lightsMatrixCompact, d_lightsScanSumLength,
-		d_pla, d_threshold,
-		d_m, d_proj,
-		d_lightsProj, d_r);
+	launch_kernel(pointLightsArr, nLights, threshold, right, gl_ModelViewMatrix, gl_ProjectionMatrix, width(), height(), 
+		gLightsRow, gLightsCol, _lightsScanSum, lightsScanSumLength, _lightsMatrix, lightsMatrixLength, GRID_RES, LIGHTS_PER_TILE);
 
 	// Populate texture buffer
 	GLuint TB[2];
