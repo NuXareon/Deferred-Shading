@@ -212,7 +212,7 @@ private:
 	int _lightsMatrix[lightsMatrixLength];
 	int _lightsScanSum[lightsScanSumLength];
 
-	unsigned int maxTileLights;
+	int maxTileLights;
 	// Buffers
 	gbuffer *gBufferDS;									// G-buffer: framebuffer with the textures we will use for deferred shading
 	depthBuffer *dBufferFR;								// Depth Buffer: framebuffer used for the depth prepass in the forward reder

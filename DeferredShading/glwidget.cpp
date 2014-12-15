@@ -1221,20 +1221,13 @@ void GLWidget::updateLightsMatrixCUDA()
 	glGetFloatv(GL_PROJECTION_MATRIX, gl_ProjectionMatrix);
 	
 	for (int i = 0; i < lightsScanSumLength; ++i) _lightsScanSum[i] = 0;
-	/*
-	int * ssTest;
-	ssTest = new int[lightsScanSumLength];
-	for (int i = 0; i < lightsScanSumLength; ++i) ssTest[i] = 0;
-	*/
+
 	launch_kernel(pointLightsArr, nLights, threshold, &right, gl_ModelViewMatrix, gl_ProjectionMatrix, width(), height(), 
 		gLightsRow, gLightsCol, _lightsScanSum, lightsScanSumLength, _lightsMatrix, lightsMatrixLength, GRID_RES, LIGHTS_PER_TILE,
 		d_res, d_nLights, d_lightsScanSum, d_lightsMatrix, d_gridRes, d_lightsTile, d_gLightsCol, d_lightsMatrixCompact, d_lightsScanSumLength,
 		d_pla, d_threshold,
 		d_m, d_proj,
 		d_lightsProj, d_r);
-	
-	//utils::saveToFile(_lightsScanSum, lightsScanSumLength,LIGHT_SS_PATH);
-	//utils::saveToFile(_lightsMatrix, lightsMatrixLength,LIGHT_MAT_PATH);
 
 	// Populate texture buffer
 	GLuint TB[2];
