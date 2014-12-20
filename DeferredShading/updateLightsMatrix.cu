@@ -47,77 +47,85 @@ __global__ void calcLightProj(float *d_pla, float threshold, glm::vec3 right, gl
 	}
 }
 
-__global__ void calcLightsMatrix(glm::vec3* lightsProj, int* lightsScanSum, int* lightsMatrix, int nLights, int gridRes, int lightsTile, int gLightsCol)
+__global__ void calcLightsMatrix(glm::vec3* lightsProj, int* lightsMatrix, int nLights, int gridRes, int lightsTile, int gLightsRow, int gLightsCol)
 {
-	int j = blockIdx.x;
-	int k = blockIdx.y;
-	int x1 = k*gridRes; int x2 = (k+1)*gridRes;
-	int y1 = j*gridRes; int y2 = (j+1)*gridRes;
-	int off;
-	for (int i = 0; i < nLights ; ++i)
-	{
-		glm::vec2 cp = glm::vec2(lightsProj[i].x,lightsProj[i].y);
-		float pRadius = lightsProj[i].z;
-		if (cp.x >= x1 && cp.x < x2) {
-			if (cp.y >= y1 && cp.y < y2) { //center inside tile
-				off = lightsScanSum[j*gLightsCol+k]++; // comprovacio que no ens pasem de max num ligths per tile
-				lightsMatrix[(j*gLightsCol+k)*lightsTile+off] = i;
-			} 
-			else if (cp.y > y2) { // down (r> y-y2)
-				if (pRadius >= abs(cp.y-y2)) {
-					off = lightsScanSum[j*gLightsCol+k]++;
-					lightsMatrix[(j*gLightsCol+k)*lightsTile+off] = i;
+	int idx = blockIdx.x*blockDim.x+threadIdx.x;
+
+	if (idx < nLights){
+		glm::vec2 cp = glm::vec2(lightsProj[idx].x,lightsProj[idx].y);
+		float pRadius = lightsProj[idx].z;
+
+		float x1,x2,y1,y2;
+		for (unsigned int j = 0; j < gLightsRow; j++) {
+			for (unsigned int k = 0; k < gLightsCol; k++) {
+				x1 = k*gridRes; x2 = (k+1)*gridRes;
+				y1 = j*gridRes; y2 = (j+1)*gridRes;
+
+				lightsMatrix[(j*gLightsCol+k)*lightsTile+idx] = 0;
+				if (cp.x >= x1 && cp.x < x2) {
+					if (cp.y >= y1 && cp.y < y2) { //center inside tile
+						lightsMatrix[(j*gLightsCol+k)*lightsTile+idx] = 1;
+					} 
+					else if (cp.y > y2) { // down (r> y-y2)
+						if (pRadius >= abs(cp.y-y2)) {
+							lightsMatrix[(j*gLightsCol+k)*lightsTile+idx] = 1;
+						}
+					} 
+					else if (cp.y < y1) { // up (r> y-y1)
+						if (pRadius >= abs(cp.y-y1)) {
+							lightsMatrix[(j*gLightsCol+k)*lightsTile+idx] = 1;
+						}
+					} 
+				} 
+				else if (cp.y >= y1 && cp.y < y2) { 
+					if (cp.x < x1) { // left
+						if (pRadius >= abs(cp.x-x1)) {
+							lightsMatrix[(j*gLightsCol+k)*lightsTile+idx] = 1;
+						}
+					}
+					else if (cp.x > x2) { // right
+						if (pRadius >= abs(cp.x-x2)) {
+							lightsMatrix[(j*gLightsCol+k)*lightsTile+idx] = 1;
+						}
+					}
 				}
-			} 
-			else if (cp.y < y1) { // up (r> y-y1)
-				if (pRadius >= abs(cp.y-y1)) {
-					off = lightsScanSum[j*gLightsCol+k]++;
-					lightsMatrix[(j*gLightsCol+k)*lightsTile+off] = i;
+				else if (cp.x < x1 && cp.y < y1) { // upper-left
+					if (pRadius >= sqrt((cp.x-x1)*(cp.x-x1)+(cp.y-y1)*(cp.y-y1))) {
+						lightsMatrix[(j*gLightsCol+k)*lightsTile+idx] = 1;
+					}
+				} 
+				else if (cp.x > x2 && cp.y < y1) { // upper-right
+					if (pRadius >= sqrt((cp.x-x2)*(cp.x-x2)+(cp.y-y1)*(cp.y-y1))) {
+						lightsMatrix[(j*gLightsCol+k)*lightsTile+idx] = 1;
+					}
 				}
-			} 
-		} 
-		else if (cp.y >= y1 && cp.y < y2) { 
-			if (cp.x < x1) { // left
-				if (pRadius >= abs(cp.x-x1)) {
-					off = lightsScanSum[j*gLightsCol+k]++;
-					lightsMatrix[(j*gLightsCol+k)*lightsTile+off] = i;
+				else if (cp.x < x1 && cp.y > y2) { // down-left
+					if (pRadius >= sqrt((cp.x-x1)*(cp.x-x1)+(cp.y-y2)*(cp.y-y2))) {
+						lightsMatrix[(j*gLightsCol+k)*lightsTile+idx] = 1;
+					}
 				}
-			}
-			else if (cp.x > x2) { // right
-				if (pRadius >= abs(cp.x-x2)) {
-					off = lightsScanSum[j*gLightsCol+k]++;
-					lightsMatrix[(j*gLightsCol+k)*lightsTile+off] = i;
+				else if (cp.x > x2 && cp.y > y2) { // down-right
+					if (pRadius >= sqrt((cp.x-x2)*(cp.x-x2)+(cp.y-y2)*(cp.y-y2))) {
+						lightsMatrix[(j*gLightsCol+k)*lightsTile+idx] = 1;
+					}
 				}
-			}
-		}
-		else if (cp.x < x1 && cp.y < y1) { // upper-left
-			if (pRadius >= sqrt((cp.x-x1)*(cp.x-x1)+(cp.y-y1)*(cp.y-y1))) {
-				off = lightsScanSum[j*gLightsCol+k]++;
-				lightsMatrix[(j*gLightsCol+k)*lightsTile+off] = i;
-			}
-		} 
-		else if (cp.x > x2 && cp.y < y1) { // upper-right
-			if (pRadius >= sqrt((cp.x-x2)*(cp.x-x2)+(cp.y-y1)*(cp.y-y1))) {
-				off = lightsScanSum[j*gLightsCol+k]++;
-				lightsMatrix[(j*gLightsCol+k)*lightsTile+off] = i;
-			}
-		}
-		else if (cp.x < x1 && cp.y > y2) { // down-left
-			if (pRadius >= sqrt((cp.x-x1)*(cp.x-x1)+(cp.y-y2)*(cp.y-y2))) {
-				off = lightsScanSum[j*gLightsCol+k]++;
-				lightsMatrix[(j*gLightsCol+k)*lightsTile+off] = i;
-			}
-		}
-		else if (cp.x > x2 && cp.y > y2) { // down-right
-			if (pRadius >= sqrt((cp.x-x2)*(cp.x-x2)+(cp.y-y2)*(cp.y-y2))) {
-				off = lightsScanSum[j*gLightsCol+k]++;
-				lightsMatrix[(j*gLightsCol+k)*lightsTile+off] = i;
 			}
 		}
 	}
 }
 
-__global__ void compactLightsMatrix(int* lightsScanSum, int* lightsMatrix, int* lightsMatrixCompact, int lightsTile, int lightsScanSumLength)
+__global__ void preScanSum(int *lightsScanSum, int *lightsMatrix, int lightsScanSumLength, int lightsTile, int nLights)
+{
+	int idx = blockIdx.x*blockDim.x+threadIdx.x;
+
+	if (idx < lightsScanSumLength) {
+		for (int i = 0; i < nLights; ++i) {
+			if (lightsMatrix[idx*lightsTile+i] == 1) lightsScanSum[idx]++;
+		}
+	}
+}
+
+__global__ void compactLightsMatrix(int* lightsScanSum, int* lightsMatrix, int* lightsMatrixCompact, int lightsTile, int lightsScanSumLength, int nLights)
 {
 	int idx = blockIdx.x*blockDim.x+threadIdx.x;
 	if (idx < lightsScanSumLength) {
@@ -125,8 +133,12 @@ __global__ void compactLightsMatrix(int* lightsScanSum, int* lightsMatrix, int* 
 		if (idx == 0) prev = 0;
 		else prev = lightsScanSum[idx-1];
 		int act = lightsScanSum[idx];
-		for (int i = 0; i < act-prev; ++i) {
-			lightsMatrixCompact[prev+i] = lightsMatrix[idx*lightsTile+i];
+		int off = 0;
+		for (int i = 0; i < nLights; ++i) {
+			if (lightsMatrix[idx*lightsTile+i] == 1) {
+				lightsMatrixCompact[prev+off] = i;
+				off++;
+			}
 		}
 	}
 }
@@ -163,15 +175,17 @@ extern "C" void launch_kernel(void* pointLightsArr, int nLights, float threshold
 	// Begin kernell calls
 	int nBlocks = glm::ceil((float)nLights/BLOCK_SIZE);
 	
-	calcLightProj<<<nBlocks,BLOCK_SIZE>>>(d_pla, threshold, right, m, proj, d_lightsProj, w, h, nLights); //O(1)
+	calcLightProj<<<nBlocks,BLOCK_SIZE>>>(d_pla, threshold, right, m, proj, d_lightsProj, w, h, nLights); 
 
-	calcLightsMatrix<<<dim3(gLightsRow, gLightsCol),1>>>(d_lightsProj, d_lightsScanSum, d_lightsMatrix, nLights, gridRes, lightsTile, gLightsCol); //O(n)
-
-	thrust::inclusive_scan(thrust::device, d_lightsScanSum, d_lightsScanSum + lightsScanSumLength, d_lightsScanSum);
+	calcLightsMatrix<<<nBlocks,BLOCK_SIZE>>>(d_lightsProj, d_lightsMatrix, nLights, gridRes, lightsTile, gLightsRow, gLightsCol); 
 
 	nBlocks = glm::ceil((float)lightsScanSumLength/BLOCK_SIZE);
 
-	compactLightsMatrix<<<nBlocks,BLOCK_SIZE>>>(d_lightsScanSum, d_lightsMatrix, d_lightsMatrixCompact, lightsTile, lightsScanSumLength); //O(1)
+	preScanSum<<<nBlocks,BLOCK_SIZE>>>(d_lightsScanSum, d_lightsMatrix, lightsScanSumLength, lightsTile, nLights);
+
+	thrust::inclusive_scan(thrust::device, d_lightsScanSum, d_lightsScanSum + lightsScanSumLength, d_lightsScanSum);
+
+	compactLightsMatrix<<<nBlocks,BLOCK_SIZE>>>(d_lightsScanSum, d_lightsMatrix, d_lightsMatrixCompact, lightsTile, lightsScanSumLength, nLights); 
 
 	// Copy results
 	cudaMemcpy(lightsScanSum ,d_lightsScanSum, lightsScanSumLength*sizeof(int),cudaMemcpyDeviceToHost);

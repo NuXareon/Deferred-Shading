@@ -19,7 +19,7 @@
 
 #define MAX_WIN_WIDTH			1920
 #define MAX_WIN_HEIGHT			1080
-#define GRID_RES				128.0
+#define GRID_RES				64.0
 #define LIGHTS_PER_TILE			1024
 #define INVALID_BUFFER			-1
 #define N_MAX_LIGHTS			10000
