@@ -4,7 +4,7 @@
 #include "utils.h"
 
 extern "C" void launch_kernel(void* pointLightsArr, int nLights, float threshold, glm::vec3 right, float* gl_ModelViewMatrix, float* gl_ProjectionMatrix, int w, int h,
-	int gLightsRow, int gLightsCol, int* lightsScanSum, int lightsScanSumLength, int* lightsMatrix, int lightsMatrixLength, int gridRes, int lightsTile);
+	int gLightsRow, int gLightsCol, int* lightsScanSum, int lightsScanSumLength, int* lightsMatrix, int lightsMatrixLength, int gridRes, int lightsTile, cudaGraphicsResource *lightsScanSumResource, cudaGraphicsResource *lightsMatrixResource);
 
 extern "C" void initMemCUDA(int nLights, int lightsScanSumLength, int lightsMatrixLength);
 
@@ -207,6 +207,8 @@ private:
 	depthBuffer *dBufferFR;								// Depth Buffer: framebuffer used for the depth prepass in the forward reder
 	depthBuffer *dBufferDS;
 	GLuint LTB,LGTB,SSTB;								// Texture buffer containing the lighting information for forward rendering
+	GLuint CUDABuffers[2];
+	cudaGraphicsResource *resource[2];
 	// CUDA
 	int *d_res, *d_nLights, *d_lightsScanSum, *d_lightsMatrix, *d_gridRes, *d_lightsTile, *d_gLightsCol, *d_lightsMatrixCompact, *d_lightsScanSumLength;
 	float *d_pla,*d_threshold;

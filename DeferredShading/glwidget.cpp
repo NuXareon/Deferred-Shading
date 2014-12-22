@@ -433,11 +433,25 @@ void GLWidget::initializeGL()
 	#elif __linux__
 	utils::enableVSyncLinux(0);
 	#endif
-	// Billboards
+	// Init buffers
 	glGenTextures(1,&LTB);
 	glGenTextures(1,&LGTB);
 	glGenTextures(1,&SSTB);
+
+	glGenBuffers(2,CUDABuffers);
+
+	glBindBuffer(GL_TEXTURE_BUFFER, CUDABuffers[0]);
+	glBufferData(GL_TEXTURE_BUFFER, sizeof(_lightsMatrix), NULL, GL_DYNAMIC_COPY);  //GL_PIXEL_UNPACK_BUFFER
+	glBindTexture(GL_TEXTURE_BUFFER,LGTB);
+	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,CUDABuffers[0]);
+
+	glBindBuffer(GL_TEXTURE_BUFFER, CUDABuffers[1]);
+	glBufferData(GL_TEXTURE_BUFFER, sizeof(_lightsScanSum), NULL, GL_DYNAMIC_COPY);  //GL_PIXEL_UNPACK_BUFFER
+	glBindTexture(GL_TEXTURE_BUFFER,SSTB);
+	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,CUDABuffers[1]);
+	// Model
 	loadModel(modelPath);
+	// Billboards
 	lightBillboard = new Texture(GL_TEXTURE_2D, "../DeferredShading/billboard.png");
 	lightBillboard->Load();
 	// Shaders
@@ -464,6 +478,17 @@ void GLWidget::initializeGL()
 	dLight = directionalLight(wColor, 0.045f, dDirection);
 
 	// CUDA
+	cudaDeviceProp prop;
+	int dev;
+
+	memset(&prop, 0, sizeof(cudaDeviceProp) );
+	prop.major = 1;
+	prop.minor = 0;
+	cudaChooseDevice(&dev, &prop);
+	cudaGLSetGLDevice(dev);
+	cudaGraphicsGLRegisterBuffer(&resource[0], CUDABuffers[0], cudaGraphicsRegisterFlagsWriteDiscard);
+	cudaGraphicsGLRegisterBuffer(&resource[1], CUDABuffers[1], cudaGraphicsRegisterFlagsWriteDiscard);
+
 	initMemCUDA(nLights, lightsScanSumLength, lightsMatrixLength);
 }
 
@@ -1217,27 +1242,35 @@ void GLWidget::updateLightsMatrixCUDA()
 	glGetFloatv(GL_PROJECTION_MATRIX, gl_ProjectionMatrix);
 	
 	for (int i = 0; i < lightsScanSumLength; ++i) _lightsScanSum[i] = 0;
+	
+	//cudaStream_t cuda_stream;
+	//cudaStreamCreate(&cuda_stream);
+	cudaGraphicsMapResources(2, resource, NULL);
 
 	launch_kernel(pointLightsArr, nLights, threshold, right, gl_ModelViewMatrix, gl_ProjectionMatrix, width(), height(), 
-		gLightsRow, gLightsCol, _lightsScanSum, lightsScanSumLength, _lightsMatrix, lightsMatrixLength, GRID_RES, LIGHTS_PER_TILE);
+		gLightsRow, gLightsCol, _lightsScanSum, lightsScanSumLength, _lightsMatrix, lightsMatrixLength, GRID_RES, LIGHTS_PER_TILE, resource[0], resource[1]);
+
+	cudaGraphicsUnmapResources(2, resource, NULL);
 
 	// Populate texture buffer
+	/*
 	GLuint TB[2];
 	glGenBuffers(2,TB);
 
 	glBindBuffer(GL_TEXTURE_BUFFER,TB[0]);
 	glBufferData(GL_TEXTURE_BUFFER,sizeof(_lightsMatrix),&_lightsMatrix[0],GL_DYNAMIC_COPY);
-
+	*/
 	glBindTexture(GL_TEXTURE_BUFFER,LGTB);
-	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,TB[0]);
-	
+	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,CUDABuffers[0]);
+	/*
 	glBindBuffer(GL_TEXTURE_BUFFER,TB[1]);
 	glBufferData(GL_TEXTURE_BUFFER,sizeof(_lightsScanSum),&_lightsScanSum[0],GL_DYNAMIC_COPY);
-
+	*/
 	glBindTexture(GL_TEXTURE_BUFFER,SSTB);
-	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,TB[1]);
-
+	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,CUDABuffers[1]);
+	/*
 	glDeleteBuffers(2,TB);
+	*/
 	
 }
 

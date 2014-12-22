@@ -16,6 +16,9 @@
 #elif __linux__
 #include "glxext.h"
 #endif
+#include "cuda.h"
+#include "cuda_gl_interop.h"
+#include "cuda_runtime.h"
 
 #define MAX_WIN_WIDTH			1920
 #define MAX_WIN_HEIGHT			1080
