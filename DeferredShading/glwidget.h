@@ -227,7 +227,7 @@ private:
 	void setLightPassUniforms();						// Sends gBuffer infor to the shaders
 	void setForwardPlusUniforms();
 	void drawPointLight(pointLight l);					// Draws a sphere equivalent to a point light
-	void setLightUniformsBlend(unsigned int l, unsigned int h, float offset);
+	void setLightUniformsBlend(unsigned int l, unsigned int h, float offset, bool useAmbient=false);
 	void drawLightBillboard(pointLight l, float width);	// Draws a billboard for a point light
 	void DrawDepthPrepass();
 	void DrawLightsGrid();

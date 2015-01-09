@@ -22,7 +22,7 @@
 
 #define MAX_WIN_WIDTH			1920
 #define MAX_WIN_HEIGHT			1080
-#define GRID_RES				64.0
+#define GRID_RES				16.0
 #define LIGHTS_PER_TILE			1024
 #define INVALID_BUFFER			-1
 #define N_MAX_LIGHTS			10000
@@ -164,7 +164,6 @@ public:
 	static void getDir(const std::string path, std::string* dir);
 	static bool readFile(const char* path, std::string& out);
 	static void enableVSyncWin(int i);
-	static void enableVSyncLinux(int i);
 	static bool checkExtension(char* ext);
 	static void drawSphere(double r, int lats, int longs);
 	static float calcLightRadius(pointLight l, float threshold);

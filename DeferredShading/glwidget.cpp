@@ -428,11 +428,7 @@ void GLWidget::initializeGL()
 	glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-	#ifdef _WIN32
 	utils::enableVSyncWin(0);
-	#elif __linux__
-	utils::enableVSyncLinux(0);
-	#endif
 	// Init buffers
 	glGenTextures(1,&LTB);
 	glGenTextures(1,&LGTB);
@@ -523,15 +519,25 @@ void GLWidget::setLightUniforms()
 	glUniform1i(nLightsLocation, nLights);
 }
 
-void GLWidget::setLightUniformsBlend(unsigned int l, unsigned int h, float offset)
+void GLWidget::setLightUniformsBlend(unsigned int l, unsigned int h, float offset, bool useAmbient)
 {	
-	// Ambient Light
-	glUniform3f(ambientColorBlendLocation, aLight.color.r, aLight.color.g, aLight.color.b);
-	glUniform1f(ambientIntensityBlendLocation,aLight.intensity);
-	// Directioal Light
-	glUniform3f(directionalColorBlendLocation, dLight.color.r, dLight.color.g, dLight.color.b);
-	glUniform1f(directionalIntensityBlendLocation, dLight.intensity);
-	glUniform3f(directionalDirectionBlendLocation, dLight.direction.x, dLight.direction.y, dLight.direction.z);
+	if (useAmbient) {
+		// Ambient Light
+		glUniform3f(ambientColorBlendLocation, aLight.color.r, aLight.color.g, aLight.color.b);
+		glUniform1f(ambientIntensityBlendLocation,aLight.intensity);
+		// Directioal Light
+		glUniform3f(directionalColorBlendLocation, dLight.color.r, dLight.color.g, dLight.color.b);
+		glUniform1f(directionalIntensityBlendLocation, dLight.intensity);
+		glUniform3f(directionalDirectionBlendLocation, dLight.direction.x, dLight.direction.y, dLight.direction.z);
+	} else {
+		// Ambient Light
+		glUniform3f(ambientColorBlendLocation, 0.0f, 0.0f, 0.0f);
+		glUniform1f(ambientIntensityBlendLocation,0.0f);
+		// Directioal Light
+		glUniform3f(directionalColorBlendLocation, 0.0f, 0.0f, 0.0f);
+		glUniform1f(directionalIntensityBlendLocation, 0.0f);
+		glUniform3f(directionalDirectionBlendLocation, 0.0f, 0.0f, 0.0f);
+	}
 	// Point lights parameters (note: the fragment shader allways uses the n first lights)
 	for (unsigned int i = l; i < h; ++i) {
 		glUniform3f(pointLightLocations[i-l].color, pointLightsArr[i].color.r, pointLightsArr[i].color.g, pointLightsArr[i].color.b);
@@ -645,7 +651,6 @@ void GLWidget::paintGL()
  		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
  
  		glUseProgram(shaderProgramBlend);
-		updateLightingBuffer();
 		if (nLights < 100) {
 			setLightUniformsBlend(0, nLights, 0.0f);
 			mainMesh->Render(positionBlendLocation, texCoordBlendLocation, normBlendLocation, samplerBlendLocation);
@@ -674,6 +679,11 @@ void GLWidget::paintGL()
 				h_interval += FORWARD_LIGHTS_INTERVAL;
 				if (h_interval > nLights) h_interval = nLights;
 			}
+
+			// Ambient + directional light
+			setLightUniformsBlend(0, 0, -0.00001f, true);
+			mainMesh->Render(positionBlendLocation, texCoordBlendLocation, normBlendLocation, samplerBlendLocation);
+
 			glDisable(GL_BLEND);
 			glDepthMask(GL_TRUE);
 		}
@@ -1253,24 +1263,12 @@ void GLWidget::updateLightsMatrixCUDA()
 	cudaGraphicsUnmapResources(2, resource, NULL);
 
 	// Populate texture buffer
-	/*
-	GLuint TB[2];
-	glGenBuffers(2,TB);
-
-	glBindBuffer(GL_TEXTURE_BUFFER,TB[0]);
-	glBufferData(GL_TEXTURE_BUFFER,sizeof(_lightsMatrix),&_lightsMatrix[0],GL_DYNAMIC_COPY);
-	*/
 	glBindTexture(GL_TEXTURE_BUFFER,LGTB);
 	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,CUDABuffers[0]);
-	/*
-	glBindBuffer(GL_TEXTURE_BUFFER,TB[1]);
-	glBufferData(GL_TEXTURE_BUFFER,sizeof(_lightsScanSum),&_lightsScanSum[0],GL_DYNAMIC_COPY);
-	*/
+
 	glBindTexture(GL_TEXTURE_BUFFER,SSTB);
 	glTexBuffer(GL_TEXTURE_BUFFER,GL_R32I,CUDABuffers[1]);
-	/*
-	glDeleteBuffers(2,TB);
-	*/
+
 	
 }
 

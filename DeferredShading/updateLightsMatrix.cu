@@ -146,20 +146,16 @@ __global__ void compactLightsMatrix(int* lightsScanSum, int* lightsMatrix, int* 
 
 extern "C" void initMemCUDA(int nLights, int lightsScanSumLength, int lightsMatrixLength)
 {
-	err=cudaMalloc((void **) &d_pla, nLights*12*sizeof(float)); //[r,g,b, i,i_,i__, x,y,z, con,lin,exp]
-	err=cudaMalloc((void **) &d_lightsProj, nLights*sizeof(glm::vec3)); // [x,y,radius]
-	//err=cudaMalloc((void **) &d_lightsScanSum, lightsScanSumLength*sizeof(int));
-	err=cudaMalloc((void **) &d_lightsMatrix, lightsMatrixLength*sizeof(int));
-	//err=cudaMalloc((void **) &d_lightsMatrixCompact, lightsMatrixLength*sizeof(int));
+	cudaMalloc((void **) &d_pla, nLights*12*sizeof(float)); //[r,g,b, i,i_,i__, x,y,z, con,lin,exp]
+	cudaMalloc((void **) &d_lightsProj, nLights*sizeof(glm::vec3)); // [x,y,radius]
+	cudaMalloc((void **) &d_lightsMatrix, lightsMatrixLength*sizeof(int));
 }
 
 extern "C" void freeMemCUDA()
 {
 	cudaFree(d_pla);;
 	cudaFree(d_lightsProj);
-	//cudaFree(d_lightsMatrixCompact);
-	cudaFree(d_lightsScanSum);
-	//cudaFree(d_lightsMatrix);
+	cudaFree(d_lightsMatrix);
 }
 
 extern "C" void launch_kernel(void* pointLightsArr, int nLights, float threshold, glm::vec3 right, float* gl_ModelViewMatrix, float* gl_ProjectionMatrix, int w, int h,
@@ -170,10 +166,10 @@ extern "C" void launch_kernel(void* pointLightsArr, int nLights, float threshold
 	glm::mat4 proj = glm::mat4(gl_ProjectionMatrix[0],gl_ProjectionMatrix[1],gl_ProjectionMatrix[2],gl_ProjectionMatrix[3],gl_ProjectionMatrix[4],gl_ProjectionMatrix[5],gl_ProjectionMatrix[6],gl_ProjectionMatrix[7],gl_ProjectionMatrix[8],gl_ProjectionMatrix[9],gl_ProjectionMatrix[10],gl_ProjectionMatrix[11],gl_ProjectionMatrix[12],gl_ProjectionMatrix[13],gl_ProjectionMatrix[14],gl_ProjectionMatrix[15]);
 
 	// Update lights and initialize scan sum _d_lightScanSum, _d_lightsMatrix;
-	err=cudaGraphicsResourceGetMappedPointer((void**) &d_lightsScanSum, &size, lightsScanSumResource);
-	err=cudaGraphicsResourceGetMappedPointer((void**) &d_lightsMatrixCompact, &size, lightsMatrixResource);
-	err=cudaMemcpy(d_pla,pointLightsArr, nLights*12*sizeof(float),cudaMemcpyHostToDevice);
-	err=cudaMemset(d_lightsScanSum, 0, lightsScanSumLength*sizeof(int));
+	cudaGraphicsResourceGetMappedPointer((void**) &d_lightsScanSum, &size, lightsScanSumResource);
+	cudaGraphicsResourceGetMappedPointer((void**) &d_lightsMatrixCompact, &size, lightsMatrixResource);
+	cudaMemcpy(d_pla,pointLightsArr, nLights*12*sizeof(float),cudaMemcpyHostToDevice);
+	cudaMemset(d_lightsScanSum, 0, lightsScanSumLength*sizeof(int));
 
 	// Begin kernell calls
 	int nBlocks = glm::ceil((float)nLights/BLOCK_SIZE);
@@ -189,14 +185,4 @@ extern "C" void launch_kernel(void* pointLightsArr, int nLights, float threshold
 	thrust::inclusive_scan(thrust::device, d_lightsScanSum, d_lightsScanSum + lightsScanSumLength, d_lightsScanSum);
 
 	compactLightsMatrix<<<nBlocks,BLOCK_SIZE>>>(d_lightsScanSum, d_lightsMatrix, d_lightsMatrixCompact, lightsTile, lightsScanSumLength, nLights); 
-	/*
-	int sstest[126];
-	cudaMemcpy(sstest,_d_lightScanSum,126*sizeof(int),cudaMemcpyDeviceToHost);
-
-	int lmtest[1000];
-	cudaMemcpy(lmtest,_d_lightsMatrix,1000*sizeof(int),cudaMemcpyDeviceToHost);
-	*/
-	// Copy results
-	//cudaMemcpy(lightsScanSum ,d_lightsScanSum, lightsScanSumLength*sizeof(int),cudaMemcpyDeviceToHost);
-	//cudaMemcpy(lightsMatrix ,d_lightsMatrixCompact, lightsMatrixLength*sizeof(int),cudaMemcpyDeviceToHost);
 }

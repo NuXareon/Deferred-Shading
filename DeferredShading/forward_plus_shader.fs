@@ -1,6 +1,6 @@
 #version 330 compatibility
 
-const int TILE_SIZE = 64;
+const int TILE_SIZE = 16;
 
 varying vec2 texCoord0;
 varying vec3 norm0;

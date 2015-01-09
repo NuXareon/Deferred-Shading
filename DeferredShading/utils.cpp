@@ -41,17 +41,6 @@ void utils::enableVSyncWin(int i)
 	#endif
 }
 
-void utils::enableVSyncLinux(int i)
-{
-	#ifdef __linux__
-	const GLubyte* glExt = glGetString(GL_EXTENSIONS);
-	if(checkExtension("GLX_EXT_swap_control ")) {
-		PFNGLXSWAPINTERVALEXTPROC glXSwapIntervalEXT = (PFNGLXSWAPINTERVALEXTPROC)glXGetProcAddress("glXSwapIntervalEXT");
-		glXSwapIntervalEXT(i);
-	}
-	#endif
-}
-
 bool utils::checkExtension(char *ext)
 {
     char *p;
