@@ -26,3 +26,4 @@ Links
 - Drive: https://docs.google.com/document/d/18DZZu6uij1NknfQejhovRVg8y3756xz0BbT67DwLoBc/edit?usp=sharing
 - Imgur: http://imgur.com/a/MBGr2
 - Informe previ: https://docs.google.com/document/d/1WdmQJXsaLGKol9I29WGMWySgJ58TuFWXiA42b2zQVWY/edit?usp=sharing
+- Memoria: https://docs.google.com/document/d/1v11-xn4V8qD2v0Qlmg4sUC3VWC_EHTtSf-8XuuO3Ol8/edit?usp=sharing
