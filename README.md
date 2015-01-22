@@ -1,29 +1,24 @@
 Deferred-Shading
 ================
 
-Implementation of the Deferred Shading Rendering Technique.
+Implementation of the Deferred Shading and the Forward+ rendering technique.
 
-Functionality
--------------
+Render
+-------
 
-- Load 3d models with textures from various formats. (only .obj format tested)
-- Move through the scene using a first person camera. (WASD + left mouse, sensitivity and speed adjustable)
-- Genereate random lights (initially 20, up to a 100).
-- Adjust lighting parameters (attenuation, intensity and bounding box scale).
-- 2 Render modes:
-    * Forward Render: standard OpenGL render.
-    * Deferred Render: Draws the scene in 2 passes: one to get the info of the geometry and another to apply the lighting, drawing light as spheres.
-- Debug Render Mode where the texture from the gbuffers are scaled to rgb colours.
+- Forwad: Render using the standard forward rendering. We use texture buffer objects to send the lights information to the shader.
+- Forward(blend): Previous implementation of forward rendering. We render the scene in intervals of a 100 lights and blend the results.
+- Deferred: Render using deferred shading. Expect notable increments on framerate w/ high number of small lights (the smaller the better this is).
+- Forward+: Render using Forward+. We used the implementation exposed on Eurographics 2012 by AMD. Link to the slide: http://www.slideshare.net/takahiroharada/forward-34779335.
+- Forward+(CUDA): We tried to use CUDA to improve the light culling of Forward+ by parallelizing it. The results were not as great as we expected probably because of lack of knowledge on how to eficiently parallelize processes with CUDA.
+ 
+- Position/Diffuse/Normal/All: G-buffers used for deferred shading.
 
-TODO
-----
-
-- Linux support.
+- Depth: Depth texture.
+- Lighting Grid: Grid used on Forward+ to ease the light calculation. Each square is colored in fuction of how many lights affect the tile.
 
 Links
 -----
 
-- Drive: https://docs.google.com/document/d/18DZZu6uij1NknfQejhovRVg8y3756xz0BbT67DwLoBc/edit?usp=sharing
-- Imgur: http://imgur.com/a/MBGr2
 - Informe previ: https://docs.google.com/document/d/1WdmQJXsaLGKol9I29WGMWySgJ58TuFWXiA42b2zQVWY/edit?usp=sharing
 - Memoria: https://docs.google.com/document/d/1v11-xn4V8qD2v0Qlmg4sUC3VWC_EHTtSf-8XuuO3Ol8/edit?usp=sharing
